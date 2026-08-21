@@ -1,0 +1,190 @@
+{
+  "n_rows": 3000,
+  "n_features_raw": 5,
+  "missing_values": {
+    "temperature": 0,
+    "humidity": 0,
+    "pressure": 0,
+    "soil_raw": 0,
+    "soilMoisture": 0,
+    "vpd_kpa": 0,
+    "et0_proxy": 0,
+    "heat_stress": 0,
+    "moisture_deficit": 0,
+    "dry_hot_index": 0,
+    "pump_historical": 0,
+    "irrigate": 0,
+    "relayStatus": 0,
+    "targetValue": 0,
+    "device_id": 0
+  },
+  "pump_on_rate": 0.523,
+  "tomato_irrigate_rate": 0.5833333333333334,
+  "label_agreement": 0.9223333333333333,
+  "describe": {
+    "temperature": {
+      "count": 3000.0,
+      "mean": 28.443,
+      "std": 6.019,
+      "min": 18.002,
+      "25%": 23.321,
+      "50%": 28.362,
+      "75%": 33.596,
+      "max": 38.993
+    },
+    "humidity": {
+      "count": 3000.0,
+      "mean": 59.387,
+      "std": 12.428,
+      "min": 38.0,
+      "25%": 48.662,
+      "50%": 58.975,
+      "75%": 70.138,
+      "max": 81.267
+    },
+    "pressure": {
+      "count": 3000.0,
+      "mean": 854.267,
+      "std": 2.576,
+      "min": 845.79,
+      "25%": 852.49,
+      "50%": 854.265,
+      "75%": 855.98,
+      "max": 864.74
+    },
+    "soilMoisture": {
+      "count": 3000.0,
+      "mean": 51.902,
+      "std": 28.037,
+      "min": 0.0,
+      "25%": 27.875,
+      "50%": 52.523,
+      "75%": 75.689,
+      "max": 100.0
+    },
+    "vpd_kpa": {
+      "count": 3000.0,
+      "mean": 1.659,
+      "std": 0.776,
+      "min": 0.397,
+      "25%": 1.067,
+      "50%": 1.515,
+      "75%": 2.13,
+      "max": 4.189
+    },
+    "et0_proxy": {
+      "count": 3000.0,
+      "mean": 4.409,
+      "std": 1.429,
+      "min": 2.083,
+      "25%": 3.156,
+      "50%": 4.221,
+      "75%": 5.589,
+      "max": 7.238
+    },
+    "pump_historical": {
+      "count": 3000.0,
+      "mean": 0.523,
+      "std": 0.5,
+      "min": 0.0,
+      "25%": 0.0,
+      "50%": 1.0,
+      "75%": 1.0,
+      "max": 1.0
+    },
+    "irrigate": {
+      "count": 3000.0,
+      "mean": 0.583,
+      "std": 0.493,
+      "min": 0.0,
+      "25%": 0.0,
+      "50%": 1.0,
+      "75%": 1.0,
+      "max": 1.0
+    }
+  },
+  "correlations": {
+    "temperature": {
+      "temperature": 1.0,
+      "humidity": 0.003,
+      "pressure": -0.288,
+      "soilMoisture": 0.014,
+      "vpd_kpa": 0.722,
+      "et0_proxy": 0.964,
+      "pump_historical": 0.005,
+      "irrigate": 0.127
+    },
+    "humidity": {
+      "temperature": 0.003,
+      "humidity": 1.0,
+      "pressure": 0.0,
+      "soilMoisture": -0.006,
+      "vpd_kpa": -0.644,
+      "et0_proxy": -0.23,
+      "pump_historical": 0.001,
+      "irrigate": -0.082
+    },
+    "pressure": {
+      "temperature": -0.288,
+      "humidity": 0.0,
+      "pressure": 1.0,
+      "soilMoisture": -0.03,
+      "vpd_kpa": -0.206,
+      "et0_proxy": -0.273,
+      "pump_historical": 0.031,
+      "irrigate": -0.012
+    },
+    "soilMoisture": {
+      "temperature": 0.014,
+      "humidity": -0.006,
+      "pressure": -0.03,
+      "soilMoisture": 1.0,
+      "vpd_kpa": 0.029,
+      "et0_proxy": 0.019,
+      "pump_historical": -0.855,
+      "irrigate": -0.826
+    },
+    "vpd_kpa": {
+      "temperature": 0.722,
+      "humidity": -0.644,
+      "pressure": -0.206,
+      "soilMoisture": 0.029,
+      "vpd_kpa": 1.0,
+      "et0_proxy": 0.868,
+      "pump_historical": -0.014,
+      "irrigate": 0.132
+    },
+    "et0_proxy": {
+      "temperature": 0.964,
+      "humidity": -0.23,
+      "pressure": -0.273,
+      "soilMoisture": 0.019,
+      "vpd_kpa": 0.868,
+      "et0_proxy": 1.0,
+      "pump_historical": -0.0,
+      "irrigate": 0.14
+    },
+    "pump_historical": {
+      "temperature": 0.005,
+      "humidity": 0.001,
+      "pressure": 0.031,
+      "soilMoisture": -0.855,
+      "vpd_kpa": -0.014,
+      "et0_proxy": -0.0,
+      "pump_historical": 1.0,
+      "irrigate": 0.85
+    },
+    "irrigate": {
+      "temperature": 0.127,
+      "humidity": -0.082,
+      "pressure": -0.012,
+      "soilMoisture": -0.826,
+      "vpd_kpa": 0.132,
+      "et0_proxy": 0.14,
+      "pump_historical": 0.85,
+      "irrigate": 1.0
+    }
+  },
+  "season_rows": 12960,
+  "season_irrigate_rate": 0.029166666666666667
+}

@@ -1,0 +1,13 @@
+.git
+.github
+.vscode
+__pycache__
+*.pyc
+.ipynb_checkpoints
+data/raw
+notebooks
+results
+Smart_Irrigation
+dashboard/node_modules
+.env
+.DS_Store

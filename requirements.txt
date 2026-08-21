@@ -1,0 +1,13 @@
+pandas==3.0.5
+numpy==2.5.2
+openpyxl==3.1.5
+matplotlib==3.11.1
+seaborn==0.13.2
+scikit-learn==1.9.0
+xgboost==3.4.1
+joblib==1.5.3
+scipy==1.18.0
+fastapi==0.141.1
+uvicorn==0.52.4
+pydantic==2.13.4
+jupyter==1.1.1
