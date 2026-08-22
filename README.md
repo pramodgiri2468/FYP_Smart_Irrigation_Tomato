@@ -6,24 +6,70 @@ The hardware logs **temperature**, **humidity**, **soil moisture**, and **relay 
 
 ## Architecture
 
+IoT + machine-learning irrigation scheduling, in six layers:
+
+![Smart Irrigation System for Tomato Cultivation](docs/system-architecture.png)
+
 ```mermaid
-flowchart LR
-  sensors[DHT11_and_soil_probe] --> esp32[ESP32]
-  esp32 --> sheets[Google_Sheets]
-  esp32 --> api[FastAPI_predict]
-  sheets --> preprocess[Preprocess_and_features]
-  preprocess --> train[Train_classifiers]
-  train --> model[irrigation_model.joblib]
-  model --> api
-  api --> decision[Relay_ON_or_OFF]
+flowchart TD
+  sensing[1_Sensing_Layer] --> processing[2_Processing_Layer_ESP32]
+  processing --> communication[3_Communication_Layer_WiFi]
+  communication --> cloud[4_Cloud_Layer_Google_Sheets]
+  cloud --> decision[5_Decision_Layer_ML]
+  decision --> actuation[6_Actuation_Layer_Pump]
 ```
 
-1. The ESP32 samples sensors every 2 seconds and uploads averages every 15 minutes.
-2. Field logs are preprocessed into tomato irrigation labels and FAO-56 features.
-3. Classifiers are compared; the best pipeline is saved for inference.
-4. `POST /predict` returns whether the pump should turn ON or OFF.
+| Layer | Name | Role |
+| --- | --- | --- |
+| 1 | Sensing | Soil moisture, temperature, humidity, pressure |
+| 2 | Processing | ESP32 reads sensors, averages samples, local irrigation logic, prepares upload |
+| 3 | Communication | Wi-Fi / internet |
+| 4 | Cloud | Google Sheets: store readings, timestamps, historical dataset |
+| 5 | Decision | Preprocess, feature engineering, train, predict, irrigation recommendation |
+| 6 | Actuation | Relay + water pump ON / OFF |
 
-The firmware currently switches the relay when `soilMoisture <= 0`. The trained API is the intended replacement: irrigate from soil moisture, heat stress, and vapor-pressure deficit rather than a single dry-soil cutoff.
+The ESP32 samples every 2 seconds and uploads averages every 15 minutes. The firmware currently switches the relay when `soilMoisture <= 0`. The Decision layer is the intended replacement: irrigate from soil moisture, heat stress, and vapor-pressure deficit rather than a single dry-soil cutoff.
+
+## Folder structure
+
+The Arduino sketch stays in one folder so it still compiles. Sensor drivers, Wi-Fi, and the relay therefore live with the ESP32 even though they belong to different layers.
+
+```
+Smart-Irrigation-Tomato/
+│
+├── docs/
+│   └── system-architecture.png          # six-layer system design
+│
+├── Sensor_reading_arduino/              # edge node (layers 1, 2, 3, 6)
+│   ├── aht10.cpp                        # 1 Sensing — DHT11 temperature & humidity
+│   ├── soil_moisture.cpp                # 1 Sensing — capacitive soil probe
+│   │                                    # 6 Actuation — relay + pump (active-low)
+│   └── SmartIrrigation.ino              # 2 Processing — read, average, local decision
+│                                        # 3 Communication — Wi-Fi / HTTP to Sheets
+│
+├── data/                                # 4 Cloud — dataset exported from Google Sheets
+│   ├── raw/                             # original Kathmandu workbook
+│   └── processed/                       # model-ready CSV and simulated season
+│
+├── src/                                 # 5 Decision — preprocess, features, EDA, train
+├── notebooks/                           # 5 Decision — FYP EDA and training notebooks
+├── api/                                 # 5 Decision — FastAPI irrigation recommendation
+├── models/                              # 5 Decision — saved sklearn pipeline
+├── results/                             # 5 Decision — plots, leaderboard, metrics
+│
+├── Dockerfile                           # Decision API image
+├── docker-compose.yml
+└── requirements.txt
+```
+
+| System layer | Folder / file |
+| --- | --- |
+| 1 Sensing | `Sensor_reading_arduino/aht10.cpp`, `soil_moisture.cpp` |
+| 2 Processing | `Sensor_reading_arduino/SmartIrrigation.ino` |
+| 3 Communication | Wi-Fi and `SCRIPT_URL` upload in `SmartIrrigation.ino` |
+| 4 Cloud | `data/raw/`, `data/processed/` (Sheets export) |
+| 5 Decision | `src/`, `notebooks/`, `api/`, `models/`, `results/` |
+| 6 Actuation | Relay control in `Sensor_reading_arduino/soil_moisture.cpp` |
 
 ## Hardware
 
@@ -194,16 +240,4 @@ Do not commit real passwords or script URLs. After the API is running, the node 
 
 ## Project layout
 
-```
-Sensor_reading_arduino/   ESP32 firmware (DHT11, soil, relay, Sheets upload)
-data/raw/                 original Kathmandu workbook
-data/processed/           model-ready CSV and simulated season
-src/                      preprocess, features, EDA, season sim, train
-notebooks/                FYP notebooks
-api/                      FastAPI service
-models/                   saved sklearn pipeline (irrigation_model.joblib)
-results/                  plots, leaderboard, classification report
-Dockerfile                API image
-docker-compose.yml        API service on port 8000
-requirements.txt          full Python stack (training + API + notebooks)
-```
+See [Folder structure](#folder-structure) for the tree mapped to the six system layers.
