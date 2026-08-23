@@ -13,9 +13,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from sklearn.dummy import DummyClassifier
-from sklearn.ensemble import HistGradientBoostingClassifier, RandomForestClassifier
-from sklearn.linear_model import LogisticRegression
+from sklearn.calibration import CalibratedClassifierCV
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import (
     accuracy_score,
     classification_report,
@@ -30,11 +29,8 @@ from sklearn.inspection import permutation_importance
 from sklearn.model_selection import StratifiedKFold, cross_val_score, train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
-from sklearn.tree import DecisionTreeClassifier
-try:
-    from xgboost import XGBClassifier
-except Exception:
-    XGBClassifier = None
+from sklearn.svm import SVC
+from xgboost import XGBClassifier
 
 from src import FIGURES_DIR, MODELS_DIR, RANDOM_SEED, RESULTS_DIR
 from src.features import FEATURE_COLUMNS, FeatureEngineer
@@ -58,20 +54,8 @@ def soil_threshold_predict(soil: np.ndarray, cut: float = 55.0) -> np.ndarray:
 
 
 def build_models() -> dict:
-    models = {
-        "dummy_stratified": DummyClassifier(strategy="stratified", random_state=RANDOM_SEED),
-        "logistic_regression": Pipeline(
-            [
-                ("scaler", StandardScaler()),
-                (
-                    "clf",
-                    LogisticRegression(max_iter=2000, class_weight="balanced", random_state=RANDOM_SEED),
-                ),
-            ]
-        ),
-        "decision_tree": DecisionTreeClassifier(
-            max_depth=5, class_weight="balanced", random_state=RANDOM_SEED
-        ),
+    """Compare XGBoost, SVM, and Random Forest on the tomato irrigation label."""
+    return {
         "random_forest": RandomForestClassifier(
             n_estimators=250,
             max_depth=8,
@@ -80,12 +64,27 @@ def build_models() -> dict:
             random_state=RANDOM_SEED,
             n_jobs=-1,
         ),
-        "hist_gradient_boosting": HistGradientBoostingClassifier(
-            max_depth=6, learning_rate=0.08, max_iter=250, random_state=RANDOM_SEED
+        "svm": Pipeline(
+            [
+                ("scaler", StandardScaler()),
+                (
+                    "clf",
+                    CalibratedClassifierCV(
+                        SVC(
+                            kernel="rbf",
+                            C=1.0,
+                            gamma="scale",
+                            class_weight="balanced",
+                            random_state=RANDOM_SEED,
+                        ),
+                        method="sigmoid",
+                        ensemble=False,
+                        cv=5,
+                    ),
+                ),
+            ]
         ),
-    }
-    if XGBClassifier is not None:
-        models["xgboost"] = XGBClassifier(
+        "xgboost": XGBClassifier(
             n_estimators=300,
             max_depth=4,
             learning_rate=0.08,
@@ -95,8 +94,8 @@ def build_models() -> dict:
             eval_metric="logloss",
             random_state=RANDOM_SEED,
             n_jobs=-1,
-        )
-    return models
+        ),
+    }
 
 
 def plot_confusion(cm, title, path):
@@ -201,7 +200,7 @@ def train() -> dict:
 
     best_name = None
     for _, row in table.iterrows():
-        if row["model"] not in ("dummy_stratified", "soil_threshold_55pct"):
+        if row["model"] != "soil_threshold_55pct":
             best_name = row["model"]
             break
     if best_name is None:
@@ -271,6 +270,23 @@ def train() -> dict:
     ax.set_ylabel("Model")
     ax.set_title("Tomato irrigation — test F1 by model")
     fig.savefig(FIGURES_DIR / "13_f1_leaderboard.png", bbox_inches="tight")
+    plt.close(fig)
+
+    compare = table[table["model"].isin(["xgboost", "svm", "random_forest"])].copy()
+    melted = compare.melt(
+        id_vars="model",
+        value_vars=["accuracy", "precision", "recall", "f1", "roc_auc"],
+        var_name="metric",
+        value_name="score",
+    )
+    fig, ax = plt.subplots(figsize=(9.5, 5.2))
+    sns.barplot(data=melted, x="metric", y="score", hue="model", ax=ax)
+    ax.set_ylim(0.95, 1.001)
+    ax.set_xlabel("Metric")
+    ax.set_ylabel("Test score")
+    ax.set_title("XGBoost vs SVM vs Random Forest")
+    ax.legend(title="Model", loc="lower right")
+    fig.savefig(FIGURES_DIR / "14_model_comparison.png", bbox_inches="tight")
     plt.close(fig)
 
     report = classification_report(y_test, pred, target_names=["no_irrigate", "irrigate"])

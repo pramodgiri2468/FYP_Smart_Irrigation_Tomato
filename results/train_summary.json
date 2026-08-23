@@ -1,5 +1,5 @@
 {
-  "best_model": "hist_gradient_boosting",
+  "best_model": "xgboost",
   "model_path": "/Users/pramod/Desktop/Smart-Irrigation-Tomato/models/irrigation_model.joblib",
   "test_size": 600,
   "leaderboard": [
@@ -8,10 +8,10 @@
       "precision": 0.9886685552407932,
       "recall": 0.9971428571428571,
       "f1": 0.9928876244665719,
-      "roc_auc": 0.9997714285714285,
-      "model": "hist_gradient_boosting",
-      "cv_f1_mean": 0.9932085150775853,
-      "cv_f1_std": 0.0023829243027570254
+      "roc_auc": 0.9998171428571428,
+      "model": "xgboost",
+      "cv_f1_mean": 0.992500545654895,
+      "cv_f1_std": 0.004147952604480964
     },
     {
       "accuracy": 0.9883333333333333,
@@ -24,24 +24,14 @@
       "cv_f1_std": 0.003671202840457099
     },
     {
-      "accuracy": 0.9866666666666667,
-      "precision": 0.997093023255814,
-      "recall": 0.98,
-      "f1": 0.9884726224783862,
-      "roc_auc": 0.9994514285714285,
-      "model": "logistic_regression",
-      "cv_f1_mean": 0.986696362314917,
-      "cv_f1_std": 0.0014276037531295428
-    },
-    {
-      "accuracy": 0.9816666666666667,
-      "precision": 0.9856733524355301,
-      "recall": 0.9828571428571429,
-      "f1": 0.9842632331902719,
-      "roc_auc": 0.9896914285714286,
-      "model": "decision_tree",
-      "cv_f1_mean": 0.9827578361349042,
-      "cv_f1_std": 0.0024329937331464126
+      "accuracy": 0.985,
+      "precision": 0.9885386819484241,
+      "recall": 0.9857142857142858,
+      "f1": 0.9871244635193133,
+      "roc_auc": 0.9991771428571429,
+      "model": "svm",
+      "cv_f1_mean": 0.985716500658085,
+      "cv_f1_std": 0.002240388084061833
     },
     {
       "accuracy": 0.9233333333333333,
@@ -52,16 +42,6 @@
       "model": "soil_threshold_55pct",
       "cv_f1_mean": NaN,
       "cv_f1_std": NaN
-    },
-    {
-      "accuracy": 0.47333333333333333,
-      "precision": 0.5502958579881657,
-      "recall": 0.5314285714285715,
-      "f1": 0.5406976744186046,
-      "roc_auc": 0.46171428571428574,
-      "model": "dummy_stratified",
-      "cv_f1_mean": 0.5866666666666667,
-      "cv_f1_std": 0.027950586565283334
     }
   ],
   "historical_pump_leaderboard": [
@@ -71,7 +51,7 @@
       "recall": 1.0,
       "f1": 1.0,
       "roc_auc": 1.0,
-      "model": "decision_tree"
+      "model": "random_forest"
     },
     {
       "accuracy": 1.0,
@@ -79,31 +59,15 @@
       "recall": 1.0,
       "f1": 1.0,
       "roc_auc": 1.0,
-      "model": "random_forest"
+      "model": "xgboost"
     },
     {
-      "accuracy": 0.9983333333333333,
-      "precision": 0.9968253968253968,
-      "recall": 1.0,
-      "f1": 0.9984101748807631,
-      "roc_auc": 1.0,
-      "model": "hist_gradient_boosting"
-    },
-    {
-      "accuracy": 0.9966666666666667,
-      "precision": 1.0,
-      "recall": 0.9936305732484076,
-      "f1": 0.9968051118210862,
-      "roc_auc": 1.0,
-      "model": "logistic_regression"
-    },
-    {
-      "accuracy": 0.5216666666666666,
-      "precision": 0.5439739413680782,
-      "recall": 0.5318471337579618,
-      "f1": 0.537842190016103,
-      "roc_auc": 0.5211683221237361,
-      "model": "dummy_stratified"
+      "accuracy": 0.9916666666666667,
+      "precision": 0.9936102236421726,
+      "recall": 0.9904458598726115,
+      "f1": 0.9920255183413078,
+      "roc_auc": 0.9998997817469155,
+      "model": "svm"
     }
   ],
   "classification_report": "              precision    recall  f1-score   support\n\n no_irrigate       1.00      1.00      1.00       250\n    irrigate       1.00      1.00      1.00       350\n\n    accuracy                           1.00       600\n   macro avg       1.00      1.00      1.00       600\nweighted avg       1.00      1.00      1.00       600\n"

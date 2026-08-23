@@ -2,7 +2,7 @@
 
 Final-year project: an ESP32 sensor node (DHT11 + capacitive soil moisture + relay) plus a machine-learning service that decides when a tomato crop should be irrigated.
 
-The hardware logs **temperature**, **humidity**, **soil moisture**, and **relay status** to Google Sheets every 15 minutes. This repository adds exploratory analysis, FAO-56 agronomic feature engineering, model training, and a FastAPI predictor that matches that payload.
+The hardware logs **temperature**, **humidity**, **soil moisture**, and **relay status** to Google Sheets every 15 minutes. This repository adds exploratory analysis, FAO-56 agronomic feature engineering, a comparison of **XGBoost**, **Random Forest**, and **RBF SVM**, and a FastAPI predictor that matches that payload. **XGBoost** is the production model.
 
 ## Architecture
 
@@ -25,7 +25,7 @@ flowchart TD
 | 2 | Processing | ESP32 reads sensors, averages samples, local irrigation logic, prepares upload |
 | 3 | Communication | Wi-Fi / internet |
 | 4 | Cloud | Google Sheets: store readings, timestamps, historical dataset |
-| 5 | Decision | Preprocess, feature engineering, train, predict, irrigation recommendation |
+| 5 | Decision | Preprocess, FAO-56 features, compare XGBoost / Random Forest / SVM, predict, irrigation recommendation |
 | 6 | Actuation | Relay + water pump ON / OFF |
 
 The ESP32 samples every 2 seconds and uploads averages every 15 minutes. The firmware currently switches the relay when `soilMoisture <= 0`. The Decision layer is the intended replacement: irrigate from soil moisture, heat stress, and vapor-pressure deficit rather than a single dry-soil cutoff.
@@ -54,7 +54,7 @@ Smart-Irrigation-Tomato/
 ├── src/                                 # 5 Decision — preprocess, features, EDA, train
 ├── notebooks/                           # 5 Decision — FYP EDA and training notebooks
 ├── api/                                 # 5 Decision — FastAPI irrigation recommendation
-├── models/                              # 5 Decision — saved sklearn pipeline
+├── models/                              # 5 Decision — saved XGBoost pipeline
 ├── results/                             # 5 Decision — plots, leaderboard, metrics
 │
 ├── Dockerfile                           # Decision API image
@@ -111,6 +111,27 @@ The historical pump column is close to a single soil-moisture threshold. The pro
 
 Engineered features (Tetens VPD, ET0 proxy, heat stress, moisture deficit) live in `src/features.py` and are applied both at training time and inside the saved sklearn pipeline.
 
+## What the data shows (EDA)
+
+Walkthrough with captions: [`notebooks/01_eda.ipynb`](notebooks/01_eda.ipynb). Rebuild figures with `PYTHONPATH=. python3 -m src.eda`.
+
+| Finding | In plain English |
+| --- | --- |
+| 3,000 complete rows | No missing values; pressure 845–865 hPa matches Kathmandu, not sea level |
+| Old pump ≈ soil switch | Correlation with soil moisture ≈ −0.85; heat and humidity were ignored |
+| Tomato FAO label | Water near 55–60% moisture, sooner if air is hot/dry (high VPD), never if soil is waterlogged |
+| They match 92.2% of the time | 207 extra “water now” decisions in heat; 26 times the tomato rule holds back |
+| Soil buckets | Dry (0–30%): always irrigate. Wet (75–100%): never. The 55–75% band is where climate matters |
+| No timestamps on the logs | Use a stratified 80/20 split; the simulated season is EDA-only |
+
+Easy plots (titles are the finding, not the chart type):
+
+- `results/figures/15_mean_by_label.png` — irrigate vs don’t, four averages
+- `results/figures/16_irrigate_rate_by_soil_bin.png` — dry / low / OK / wet
+- `results/figures/17_pump_vs_tomato_agreement.png` — 2×2 agreement
+- `results/figures/19_what_predicts_irrigation.png` — pump follows soil only
+- `results/figures/23_soil_temp_irrigate_heatmap.png` — dry+hot → water
+
 ## Setup
 
 Python 3.12 is recommended (the Docker image uses `python:3.12-slim`).
@@ -129,23 +150,23 @@ Place the raw workbook at `data/raw/Soil_Moisture_Temp_Humidity_Pressure_MotorOn
 python3 -m src.preprocess
 python3 -m src.generate_season
 python3 -m src.eda
-python3 -m src.train
+PYTHONPATH=. python3 -m src.train
 ```
 
 | Command | What it does |
 | --- | --- |
 | `src.preprocess` | Loads the workbook, maps ADC to 0–100 %, adds agronomic features, writes tomato labels |
 | `src.generate_season` | FAO-56 Kathmandu spring simulation (EDA only) |
-| `src.eda` | Figures and summaries under `results/` |
-| `src.train` | Compares classifiers and saves the best pipeline |
+| `src.eda` | Easy-read figures 01–09 and 15–23 plus `results/eda_summary.json` |
+| `src.train` | Compares XGBoost, Random Forest, and RBF SVM; saves the best pipeline |
 
 Outputs:
 
 - `data/processed/tomato_irrigation.csv`
 - `data/processed/tomato_season_simulated.csv`
-- `results/figures/` — EDA and training plots
+- `results/figures/` — EDA (including soil bins, agreement, climate heatmap), ROC, F1, three-model comparison
 - `results/model_leaderboard.csv`
-- `models/irrigation_model.joblib`
+- `models/irrigation_model.joblib` (XGBoost)
 
 Notebooks (same analysis, for the report/viva):
 
@@ -154,22 +175,28 @@ Notebooks (same analysis, for the report/viva):
 
 ## Results
 
-Held-out test set (600 rows). Best model: **Histogram Gradient Boosting**.
+Held-out test set (600 rows). The Decision layer compares three classifiers against a 55 % soil-moisture cutoff. **XGBoost** is saved for the API.
 
-| Model | Accuracy | F1 | ROC-AUC |
-| --- | --- | --- | --- |
-| hist_gradient_boosting | 0.992 | 0.993 | 1.000 |
-| random_forest | 0.988 | 0.990 | 1.000 |
-| logistic_regression | 0.987 | 0.988 | 0.999 |
-| decision_tree | 0.982 | 0.984 | 0.990 |
-| soil_threshold_55pct | 0.923 | 0.931 | 0.939 |
-| dummy_stratified | 0.473 | 0.541 | 0.462 |
+| Model | Accuracy | Precision | Recall | F1 | ROC-AUC | 5-fold CV F1 |
+| --- | --- | --- | --- | --- | --- | --- |
+| **xgboost** | **0.992** | 0.989 | **0.997** | **0.993** | **1.000** | **0.993** |
+| random_forest | 0.988 | **0.994** | 0.986 | 0.990 | 1.000 | 0.990 |
+| svm | 0.985 | 0.989 | 0.986 | 0.987 | 0.999 | 0.986 |
+| soil_threshold_55pct | 0.923 | 0.987 | 0.880 | 0.931 | 0.939 | — |
 
-The FAO-style label is harder than copying the historical pump column. A fixed 55 % soil-moisture cutoff is the agronomic baseline; the trained models beat it by using VPD and heat as well as moisture.
+- **XGBoost** — best F1 and recall; production model in `models/irrigation_model.joblib`
+- **Random Forest** — highest precision; close second
+- **RBF SVM** — scaled features + calibrated probabilities; still well above the moisture-only baseline
+
+All three learned models beat the agronomic 55 % cutoff by using vapor-pressure deficit and heat as well as soil moisture.
+
+![Test F1 by model](results/figures/13_f1_leaderboard.png)
+
+![XGBoost vs SVM vs Random Forest](results/figures/14_model_comparison.png)
 
 ## API
 
-Requires `models/irrigation_model.joblib` (run `python3 -m src.train` first).
+Requires `models/irrigation_model.joblib` (`PYTHONPATH=. python3 -m src.train`).
 
 ```bash
 PYTHONPATH=. uvicorn api.app:app --reload --port 8000
@@ -205,7 +232,7 @@ Example response:
   "probability": 0.97,
   "relayStatus": "ON",
   "targetValue": 100.0,
-  "model": "hist_gradient_boosting",
+  "model": "xgboost",
   "reasons": [
     "Soil moisture is below the tomato readily-available-water band."
   ]
@@ -237,7 +264,3 @@ Edit `Sensor_reading_arduino/SmartIrrigation.ino` before flashing:
 - `SCRIPT_URL` — Google Apps Script web-app URL that appends rows to Sheets
 
 Do not commit real passwords or script URLs. After the API is running, the node can call `POST /predict` with the same JSON fields it already logs (`temperature`, `humidity`, `soilMoisture`, `pressure`).
-
-## Project layout
-
-See [Folder structure](#folder-structure) for the tree mapped to the six system layers.

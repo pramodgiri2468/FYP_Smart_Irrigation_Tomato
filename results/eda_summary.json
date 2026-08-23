@@ -186,5 +186,22 @@
     }
   },
   "season_rows": 12960,
-  "season_irrigate_rate": 0.029166666666666667
+  "season_irrigate_rate": 0.029166666666666667,
+  "plain_language": {
+    "rows": "3,000 Kathmandu sensor logs. No missing values.",
+    "pressure": "845\u2013865 hPa matches Kathmandu (~1,400 m), not sea level.",
+    "pump": "Old pump is almost a soil-moisture switch (corr \u2248 \u22120.85).",
+    "tomato_label": "FAO tomato rule also uses heat and dry air (VPD).",
+    "agreement": "Pump and tomato label match on 92.2% of rows.",
+    "disagreements": "207 times the tomato rule waters when the pump did not; 26 times it holds back when the pump ran.",
+    "soil_bands": {
+      "Dry (0\u201330%)": 1.0,
+      "Low (30\u201355%)": 0.9659239842726082,
+      "OK (55\u201375%)": 0.3094512195121951,
+      "Wet (75\u2013100%)": 0.0
+    },
+    "model_target": "Train on irrigate, not pump_historical."
+  },
+  "disagree_pump_on_tomato_off": 26,
+  "disagree_pump_off_tomato_on": 207
 }
