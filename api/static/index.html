@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tomato irrigation — farmer dashboard</title>
+  <link rel="stylesheet" href="/static/dashboard.css" />
+</head>
+<body>
+  <header class="top">
+    <div>
+      <p class="eyebrow">Local FastAPI deployment · Docker · this Mac</p>
+      <h1>Tomato irrigation</h1>
+    </div>
+    <div class="pills">
+      <a class="pill" href="/docs">FastAPI docs</a>
+      <a class="pill" href="/redoc">ReDoc</a>
+      <span id="health-pill" class="pill">Checking model…</span>
+      <span id="pump-pill" class="pill pump">Pump —</span>
+    </div>
+  </header>
+
+  <section class="hero" id="decision-banner">
+    <p class="label">Latest ML decision</p>
+    <p id="decision-text">Waiting for the first ESP32 reading…</p>
+    <p id="decision-reason" class="reason"></p>
+  </section>
+
+  <section class="metrics" id="metrics">
+    <article class="card"><p class="label">Soil moisture</p><p class="value" id="v-soil">—</p><p class="unit">% · root zone</p><div class="bar"><span id="bar-soil"></span></div></article>
+    <article class="card"><p class="label">Temperature</p><p class="value" id="v-temp">—</p><p class="unit">°C · DHT11</p></article>
+    <article class="card"><p class="label">Humidity</p><p class="value" id="v-hum">—</p><p class="unit">% RH · DHT11</p></article>
+    <article class="card"><p class="label">Pressure</p><p class="value" id="v-pres">—</p><p class="unit">hPa · BMP280</p></article>
+    <article class="card"><p class="label">water_needed</p><p class="value" id="v-need">—</p><p class="unit">1 = irrigate · 0 = wait</p></article>
+    <article class="card"><p class="label">Model confidence</p><p class="value" id="v-prob">—</p><p class="unit" id="v-model">XGBoost</p></article>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Soil moisture over recent posts</h2>
+      <span class="muted" id="log-meta">No live rows yet</span>
+    </div>
+    <svg id="chart" viewBox="0 0 640 160" preserveAspectRatio="none" role="img" aria-label="Soil moisture history"></svg>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Decision log</h2>
+      <a href="/api/logs.csv">Download CSV</a>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Time (UTC)</th>
+            <th>Soil %</th>
+            <th>Temp</th>
+            <th>RH</th>
+            <th>hPa</th>
+            <th>Need</th>
+            <th>Pump</th>
+            <th>P(irrigate)</th>
+          </tr>
+        </thead>
+        <tbody id="log-body">
+          <tr><td colspan="8" class="empty">POST /predict from the ESP32 (or the Try-it box on /docs) to fill this table.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    This page is served by FastAPI (<a href="/docs">interactive API at /docs</a>).
+    Closed loop: sensors → ESP32 JSON → POST /predict → XGBoost → pump ON/OFF.
+    Keep this Mac awake on the same Wi-Fi as the node.
+  </footer>
+  <script src="/static/dashboard.js"></script>
+</body>
+</html>

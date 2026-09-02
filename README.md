@@ -1,34 +1,56 @@
 # Smart Irrigation for Tomato
 
-Final-year project: an ESP32 sensor node (DHT11 + capacitive soil moisture + relay) plus a machine-learning service that decides when a tomato crop should be irrigated.
-
-The hardware logs **temperature**, **humidity**, **soil moisture**, and **relay status** to Google Sheets every 15 minutes. This repository adds exploratory analysis, FAO-56 agronomic feature engineering, a comparison of **XGBoost**, **Random Forest**, and **RBF SVM**, and a FastAPI predictor that matches that payload. **XGBoost** is the production model.
+Final-year project: an ESP32 farm node (DHT11 + BMP280 + capacitive soil probe + relay/pump) talks to a **local FastAPI service on this Mac**. The service logs every reading to CSV, runs the trained **XGBoost** model, and returns `water_needed` (1 = pump ON, 0 = OFF). A farmer dashboard reads that same log. No AWS EC2.
 
 ## Architecture
 
-IoT + machine-learning irrigation scheduling, in six layers:
+Tomato farm / IoT layer on the left, local Docker deployment on this MacBook on the right. HTTP JSON is the only link.
 
-![Smart Irrigation System for Tomato Cultivation](docs/system-architecture.png)
+![Smart Irrigation Tomato — local deployment](docs/deployment-architecture.png)
 
 ```mermaid
-flowchart TD
-  sensing[1_Sensing_Layer] --> processing[2_Processing_Layer_ESP32]
-  processing --> communication[3_Communication_Layer_WiFi]
-  communication --> cloud[4_Cloud_Layer_Google_Sheets]
-  cloud --> decision[5_Decision_Layer_ML]
-  decision --> actuation[6_Actuation_Layer_Pump]
+flowchart LR
+  subgraph farm["Tomato farm / IoT"]
+    bmp[BMP280 pressure]
+    dht[DHT11 temp / RH]
+    soil[Soil moisture]
+    esp[ESP32]
+    pump[Irrigation pump]
+    bmp --> esp
+    dht --> esp
+    soil --> esp
+    pump -.-> soil
+  end
+
+  esp -->|"Wi-Fi HTTP JSON"| api
+  api -->|"water_needed 1/0"| pump
+
+  subgraph mac["This Mac — Docker"]
+    api[FastAPI REST]
+    csv[CSV local storage]
+    prep[Preprocess + FAO-56]
+    model[XGBoost / RF / SVM]
+    dash[Web dashboard]
+    farmer[Farmer]
+    api --> csv
+    api --> prep --> model
+    model --> api
+    csv --> dash
+    model --> dash
+    dash --> farmer
+  end
 ```
 
-| Layer | Name | Role |
+| Side | Block | What it does |
 | --- | --- | --- |
-| 1 | Sensing | Soil moisture, temperature, humidity, pressure |
-| 2 | Processing | ESP32 reads sensors, averages samples, local irrigation logic, prepares upload |
-| 3 | Communication | Wi-Fi / internet |
-| 4 | Cloud | Google Sheets: store readings, timestamps, historical dataset |
-| 5 | Decision | Preprocess, FAO-56 features, compare XGBoost / Random Forest / SVM, predict, irrigation recommendation |
-| 6 | Actuation | Relay + water pump ON / OFF |
+| Farm | BMP280, DHT11, soil probe | Pressure, temperature, humidity, soil moisture |
+| Farm | ESP32 | Packs JSON, `POST /predict` every 15 s, drives the relay |
+| Farm | Pump | ON/OFF from `water_needed`; watered soil is the feedback |
+| Mac | Docker + FastAPI | Receives JSON, writes CSV, runs the model |
+| Mac | Trained model | Production artefact: XGBoost in `models/irrigation_model.joblib` |
+| Mac | Web dashboard | `/` — live sensors, pump, decision log for the farmer |
 
-The ESP32 samples every 2 seconds and uploads averages every 15 minutes. The firmware currently switches the relay when `soilMoisture <= 0`. The Decision layer is the intended replacement: irrigate from soil moisture, heat stress, and vapor-pressure deficit rather than a single dry-soil cutoff.
+If FastAPI is unreachable, the ESP32 falls back to pump ON only when `soilMoisture <= 0`. Training still uses the 3,000 Kathmandu logs under `data/raw/`. Live operation uses `data/live/irrigation_log.csv`.
 
 ## Folder structure
 
@@ -38,38 +60,42 @@ The Arduino sketch stays in one folder so it still compiles. Sensor drivers, Wi-
 Smart-Irrigation-Tomato/
 │
 ├── docs/
-│   └── system-architecture.png          # six-layer system design
+│   ├── deployment-architecture.png      # farm IoT + local Mac Docker
+│   └── system-architecture.png          # earlier six-layer sketch
 │
-├── Sensor_reading_arduino/              # edge node (layers 1, 2, 3, 6)
-│   ├── aht10.cpp                        # 1 Sensing — DHT11 temperature & humidity
-│   ├── soil_moisture.cpp                # 1 Sensing — capacitive soil probe
-│   │                                    # 6 Actuation — relay + pump (active-low)
-│   └── SmartIrrigation.ino              # 2 Processing — read, average, local decision
-│                                        # 3 Communication — Wi-Fi / HTTP to Sheets
+├── Sensor_reading_arduino/              # farm / IoT layer
+│   ├── aht10.cpp                        # DHT11 temperature & humidity
+│   ├── bmp280.cpp                       # BMP280 pressure (I2C)
+│   ├── soil_moisture.cpp                # soil probe + relay / pump
+│   └── SmartIrrigation.ino              # Wi-Fi, POST /predict, fallback
 │
-├── data/                                # 4 Cloud — dataset exported from Google Sheets
-│   ├── raw/                             # original Kathmandu workbook
-│   └── processed/                       # model-ready CSV and simulated season
+├── data/
+│   ├── raw/                             # Kathmandu workbook (training)
+│   ├── processed/                       # model-ready CSV
+│   └── live/                            # irrigation_log.csv from the API
 │
-├── src/                                 # 5 Decision — preprocess, features, EDA, train
-├── notebooks/                           # 5 Decision — FYP EDA and training notebooks
-├── api/                                 # 5 Decision — FastAPI irrigation recommendation
-├── models/                              # 5 Decision — saved XGBoost pipeline
-├── results/                             # 5 Decision — plots, leaderboard, metrics
+├── src/                                 # preprocess, FAO-56 features, train
+├── notebooks/
+├── api/                                 # FastAPI + farmer dashboard
+│   ├── app.py
+│   ├── storage.py
+│   └── static/                          # dashboard HTML / CSS / JS
+├── models/                              # irrigation_model.joblib (XGBoost)
+├── results/
 │
-├── Dockerfile                           # Decision API image
+├── Dockerfile
 ├── docker-compose.yml
 └── requirements.txt
 ```
 
-| System layer | Folder / file |
+| System piece | Folder / file |
 | --- | --- |
-| 1 Sensing | `Sensor_reading_arduino/aht10.cpp`, `soil_moisture.cpp` |
-| 2 Processing | `Sensor_reading_arduino/SmartIrrigation.ino` |
-| 3 Communication | Wi-Fi and `SCRIPT_URL` upload in `SmartIrrigation.ino` |
-| 4 Cloud | `data/raw/`, `data/processed/` (Sheets export) |
-| 5 Decision | `src/`, `notebooks/`, `api/`, `models/`, `results/` |
-| 6 Actuation | Relay control in `Sensor_reading_arduino/soil_moisture.cpp` |
+| Farm sensors | `aht10.cpp`, `bmp280.cpp`, `soil_moisture.cpp` |
+| ESP32 + Wi-Fi | `SmartIrrigation.ino` |
+| Pump / relay | `soil_moisture.cpp` (`setRelay`) |
+| FastAPI + CSV | `api/app.py`, `api/storage.py`, `data/live/` |
+| Farmer dashboard | `api/static/` at `GET /` |
+| Trained model | `models/irrigation_model.joblib` |
 
 ## Hardware
 
@@ -77,15 +103,17 @@ Firmware lives in `Sensor_reading_arduino/`.
 
 | Device | Role | Pin |
 | --- | --- | --- |
-| ESP32 | Wi-Fi node, averaging, upload | — |
+| ESP32 | Wi-Fi node, JSON to FastAPI, relay | — |
 | DHT11 | Air temperature and relative humidity | GPIO 4 |
+| BMP280 | Atmospheric pressure (I2C) | SDA GPIO 8, SCL GPIO 9 |
 | Capacitive soil moisture | Analog moisture (AO) | GPIO 20 |
 | Capacitive soil moisture | Digital threshold (DO) | GPIO 36 |
 | Relay (active-low) | Pump ON/OFF | GPIO 1 |
 
 - Soil ADC is 12-bit. Dry calibration is 3800; wet is 1400. Moisture is mapped to 0–100 %.
-- Samples every 2 s; Google Sheets upload every 15 minutes. A relay-ON event is uploaded immediately.
-- DHT11 does not measure pressure. The firmware sends `0`; the API substitutes the Kathmandu mean (854.27 hPa).
+- Samples every 2 s; `POST /predict` every 15 s. Pump follows `water_needed`.
+- If the BMP280 is missing, firmware sends `pressure: 0` and the API uses the Kathmandu mean (854.27 hPa).
+- Arduino Library Manager: **DHT sensor library**, **Adafruit BMP280 Library**, **Adafruit Unified Sensor**.
 
 ## Dataset
 
@@ -170,7 +198,7 @@ Outputs:
 
 Notebooks (same analysis, for the report/viva):
 
-- `notebooks/01_eda.ipynb`
+- `notebooks/01_eda.ipynb` — EDA only; runs in Google Colab without training or the API ([Open in Colab](https://colab.research.google.com/github/pramodgiri2468/FYP_Smart_Irrigation_Tomato/blob/main/notebooks/01_eda.ipynb))
 - `notebooks/02_model_training.ipynb`
 
 ## Results
@@ -194,19 +222,60 @@ All three learned models beat the agronomic 55 % cutoff by using vapor-pressure 
 
 ![XGBoost vs SVM vs Random Forest](results/figures/14_model_comparison.png)
 
-## API
+## Deploy on this PC (no AWS)
 
-Requires `models/irrigation_model.joblib` (`PYTHONPATH=. python3 -m src.train`).
+The model file is `models/irrigation_model.joblib`. You serve it with FastAPI on **this computer**. Nothing is uploaded to EC2 or any cloud GPU.
+
+**Option A — Docker (recommended).** Docker Desktop must be running (whale icon in the menu bar).
 
 ```bash
-PYTHONPATH=. uvicorn api.app:app --reload --port 8000
+cd ~/Desktop/Smart-Irrigation-Tomato
+open -a Docker          # skip if already running
+docker compose up -d --build
 ```
+
+Check: farmer dashboard http://127.0.0.1:8000/ — health JSON http://127.0.0.1:8000/health
+
+If you see `Bind for 0.0.0.0:8000 failed: port is already allocated`, the API is **already up**. Do not run `docker run ...` as well. Use:
+
+```bash
+docker compose ps
+docker compose logs -f api
+```
+
+Stop it with `docker compose down`.
+
+**Option B — Python venv (no Docker).** Use this if Docker is not running. Stop Option A first so port 8000 is free.
+
+```bash
+cd ~/Desktop/Smart-Irrigation-Tomato
+source .venv/bin/activate
+PYTHONPATH=. python -m uvicorn api.app:app --host 0.0.0.0 --port 8000
+```
+
+`--host 0.0.0.0` lets the ESP32 on the same Wi-Fi call this Mac. `--reload` is only for development.
+
+Do not prefix the command with `. ` (bash `source`). That tries to run the uvicorn file as a shell script and fails.
+
+**Call it from another device (ESP32 / phone).** Find this Mac’s LAN IP (System Settings → Network, or `ipconfig getifaddr en0`). Example:
+
+```bash
+curl -sS http://192.168.1.79:8000/health
+curl -sS -X POST http://192.168.1.79:8000/predict \
+  -H 'Content-Type: application/json' \
+  -d '{"temperature":29.2,"humidity":48.0,"soilMoisture":38.5,"pressure":0}'
+```
+
+Keep the Mac awake and on the same Wi-Fi as the ESP32. macOS Firewall (System Settings → Network → Firewall) must allow incoming connections on port 8000. This is a home/LAN service, not a public internet deployment.
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| GET | `/` | Service info |
+| GET | `/` | Farmer dashboard |
 | GET | `/health` | Model file present or degraded |
-| POST | `/predict` | Irrigation decision |
+| POST | `/predict` | Irrigation decision + CSV log |
+| GET | `/api/status` | Latest reading and pump state |
+| GET | `/api/logs` | Recent CSV rows as JSON |
+| GET | `/api/logs.csv` | Download the live log |
 | GET | `/docs` | Interactive OpenAPI UI |
 
 ### `POST /predict`
@@ -228,39 +297,26 @@ Example response:
 
 ```json
 {
+  "water_needed": 1,
   "irrigate": true,
   "probability": 0.97,
   "relayStatus": "ON",
   "targetValue": 100.0,
   "model": "xgboost",
+  "logged": true,
   "reasons": [
     "Soil moisture is below the tomato readily-available-water band."
   ]
 }
 ```
 
-`targetValue` is `100` when irrigating and `0` otherwise, matching the firmware upload convention.
-
-## Docker
-
-```bash
-docker compose up --build
-```
-
-The API listens on port 8000. `./models` is mounted into the container so a newly trained joblib is picked up without rebuilding the image. Health check: `GET /health`.
-
-For the API-only image without Compose:
-
-```bash
-docker build -t smart-irrigation-api .
-docker run --rm -p 8000:8000 -v "$(pwd)/models:/app/models" smart-irrigation-api
-```
+`water_needed` is `1` (pump ON) or `0` (pump OFF). Every call is appended to `data/live/irrigation_log.csv`.
 
 ## Firmware configuration
 
 Edit `Sensor_reading_arduino/SmartIrrigation.ino` before flashing:
 
-- `WIFI_SSID` / `WIFI_PASS` — local Wi-Fi
-- `SCRIPT_URL` — Google Apps Script web-app URL that appends rows to Sheets
+- `WIFI_SSID` / `WIFI_PASS` — same Wi-Fi as this Mac
+- `API_HOST` — this Mac’s LAN IP (`ipconfig getifaddr en0`), default port 8000
 
-Do not commit real passwords or script URLs. After the API is running, the node can call `POST /predict` with the same JSON fields it already logs (`temperature`, `humidity`, `soilMoisture`, `pressure`).
+Install the three Adafruit/DHT libraries, wire BMP280 to GPIO 8/9 (or change `BMP_SDA` / `BMP_SCL` in `bmp280.cpp`), then flash. Keep Docker Compose running so `/predict` is reachable. Do not commit real passwords.
