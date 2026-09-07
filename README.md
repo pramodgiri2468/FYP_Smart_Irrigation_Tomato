@@ -124,7 +124,7 @@ Firmware lives in `Sensor_reading_arduino/`.
 | Soil Moisture | Analog probe (converted to 0–100 %) |
 | Temperature | Air temperature (°C) |
 | Air Humidity | Relative humidity (%) |
-| Atmospheric Pressure (Kathmandu) | Air pressure (hPa) |
+| Atmospheric Pressure | Air pressure (hPa) |
 | Pump Data | Historical pump ON/OFF |
 
 `data/processed/tomato_season_simulated.csv` is a FAO-56 soil-water-balance simulation of a Kathmandu spring tomato crop at the same 15-minute interval as the ESP32 uploader. It is used only for time-series EDA (diurnal cycle and growth stages). **The production model is trained on the 3,000 real logs.**
