@@ -3,76 +3,106 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Tomato irrigation — farmer dashboard</title>
+  <title>Tomato greenhouse</title>
   <link rel="stylesheet" href="/static/dashboard.css" />
 </head>
 <body>
   <header class="top">
     <div>
-      <p class="eyebrow">Local FastAPI deployment · Docker · this Mac</p>
-      <h1>Tomato irrigation</h1>
+      <p class="eyebrow">Tomato greenhouse</p>
+      <h1>Is it time to water?</h1>
     </div>
     <div class="pills">
-      <a class="pill" href="/docs">FastAPI docs</a>
-      <a class="pill" href="/redoc">ReDoc</a>
-      <span id="health-pill" class="pill">Checking model…</span>
+      <span id="live-pill" class="pill">Waiting for sensors…</span>
       <span id="pump-pill" class="pill pump">Pump —</span>
     </div>
   </header>
 
-  <section class="hero" id="decision-banner">
-    <p class="label">Latest ML decision</p>
-    <p id="decision-text">Waiting for the first ESP32 reading…</p>
-    <p id="decision-reason" class="reason"></p>
+  <p id="stale-banner" class="stale hidden">
+    No new reading from the greenhouse. Check that the ESP32 and this computer are on the same Wi-Fi, and that the pump computer is running.
+  </p>
+
+  <section class="hero wait" id="decision-banner">
+    <p class="label" id="hero-label">Waiting</p>
+    <p id="decision-text">Waiting for the greenhouse sensor…</p>
+    <p id="decision-reason" class="reason">Turn on the ESP32. This page will fill in by itself.</p>
+    <p id="updated-at" class="updated"></p>
   </section>
 
-  <section class="metrics" id="metrics">
-    <article class="card"><p class="label">Soil moisture</p><p class="value" id="v-soil">—</p><p class="unit">% · root zone</p><div class="bar"><span id="bar-soil"></span></div></article>
-    <article class="card"><p class="label">Temperature</p><p class="value" id="v-temp">—</p><p class="unit">°C · DHT11</p></article>
-    <article class="card"><p class="label">Humidity</p><p class="value" id="v-hum">—</p><p class="unit">% RH · DHT11</p></article>
-    <article class="card"><p class="label">Pressure</p><p class="value" id="v-pres">—</p><p class="unit">hPa · BMP280</p></article>
-    <article class="card"><p class="label">water_needed</p><p class="value" id="v-need">—</p><p class="unit">1 = irrigate · 0 = wait</p></article>
-    <article class="card"><p class="label">Model confidence</p><p class="value" id="v-prob">—</p><p class="unit" id="v-model">XGBoost</p></article>
+  <section class="metrics">
+    <article class="card">
+      <p class="label">Soil water</p>
+      <p class="value" id="v-soil">—</p>
+      <p class="unit" id="soil-plain">from the soil probe</p>
+      <div class="bar"><span id="bar-soil"></span></div>
+    </article>
+    <article class="card">
+      <p class="label">Air temperature</p>
+      <p class="value" id="v-temp">—</p>
+      <p class="unit" id="temp-plain">from the greenhouse air</p>
+    </article>
+    <article class="card">
+      <p class="label">Air humidity</p>
+      <p class="value" id="v-hum">—</p>
+      <p class="unit" id="hum-plain">how moist the air feels</p>
+    </article>
+    <article class="card">
+      <p class="label">Air pressure</p>
+      <p class="value" id="v-pres">—</p>
+      <p class="unit">hPa · BMP280 or site value</p>
+    </article>
+    <article class="card pump-card" id="pump-card">
+      <p class="label">Water pump</p>
+      <p class="value" id="v-pump">—</p>
+      <p class="unit" id="confidence-plain">decided from these live readings</p>
+    </article>
   </section>
 
   <section class="panel">
     <div class="panel-head">
-      <h2>Soil moisture over recent posts</h2>
+      <h2>Soil water over recent readings</h2>
       <span class="muted" id="log-meta">No live rows yet</span>
     </div>
     <svg id="chart" viewBox="0 0 640 160" preserveAspectRatio="none" role="img" aria-label="Soil moisture history"></svg>
+    <p class="muted chart-hint">0% is bone dry. 100% is fully wet. The line should move when the ESP32 is sending.</p>
   </section>
 
   <section class="panel">
     <div class="panel-head">
-      <h2>Decision log</h2>
-      <a href="/api/logs.csv">Download CSV</a>
+      <h2>Recent greenhouse readings</h2>
+      <a href="/api/logs.csv">Download log</a>
     </div>
     <div class="table-wrap">
       <table>
         <thead>
           <tr>
-            <th>Time (UTC)</th>
-            <th>Soil %</th>
-            <th>Temp</th>
-            <th>RH</th>
-            <th>hPa</th>
-            <th>Need</th>
-            <th>Pump</th>
-            <th>P(irrigate)</th>
+            <th>When</th>
+            <th>Soil</th>
+            <th>Air</th>
+            <th>Humidity</th>
+            <th>What we did</th>
           </tr>
         </thead>
         <tbody id="log-body">
-          <tr><td colspan="8" class="empty">POST /predict from the ESP32 (or the Try-it box on /docs) to fill this table.</td></tr>
+          <tr><td colspan="5" class="empty">Waiting for the first live reading from the greenhouse.</td></tr>
         </tbody>
       </table>
     </div>
   </section>
 
+  <section class="panel learn">
+    <div class="panel-head">
+      <h2>Teach the pump from today’s sensors</h2>
+    </div>
+    <p class="muted" id="learn-meta">
+      Live readings are stored on this computer. After enough greenhouse data, the XGBoost model can learn from them.
+    </p>
+    <button type="button" id="learn-btn">Update model from greenhouse log</button>
+    <p class="muted" id="learn-status"></p>
+  </section>
+
   <footer>
-    This page is served by FastAPI (<a href="/docs">interactive API at /docs</a>).
-    Closed loop: sensors → ESP32 JSON → POST /predict → XGBoost → pump ON/OFF.
-    Keep this Mac awake on the same Wi-Fi as the node.
+    This screen refreshes by itself. Keep this computer awake on the same Wi-Fi as the greenhouse box.
   </footer>
   <script src="/static/dashboard.js"></script>
 </body>

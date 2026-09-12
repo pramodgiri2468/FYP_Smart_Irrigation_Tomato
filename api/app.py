@@ -1,4 +1,4 @@
-"""FastAPI service: infer irrigation, store CSV logs, serve the farmer dashboard."""
+"""FastAPI service: live ESP32 sensors, XGBoost on this Mac, farmer dashboard."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from api import storage
+from api import learn, plain, storage
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 MODEL_PATH = PROJECT_ROOT / "models" / "irrigation_model.joblib"
@@ -20,21 +20,30 @@ STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 app = FastAPI(
     title="Smart Irrigation Tomato API",
-    description="Local FastAPI service: ESP32 JSON in, water_needed out, farmer dashboard.",
-    version="2.0.0",
+    description="Live greenhouse sensors → XGBoost on this Mac → farmer dashboard.",
+    version="2.1.0",
 )
 
 _bundle = None
+_bundle_mtime = None
+
+
+def reset_bundle() -> None:
+    global _bundle, _bundle_mtime
+    _bundle = None
+    _bundle_mtime = None
 
 
 def load_bundle():
-    global _bundle
-    if _bundle is None:
-        if not MODEL_PATH.exists():
-            raise FileNotFoundError(
-                f"Model not found at {MODEL_PATH}. Run: python -m src.train"
-            )
+    global _bundle, _bundle_mtime
+    if not MODEL_PATH.exists():
+        raise FileNotFoundError(
+            f"Model not found at {MODEL_PATH}. Run: python -m src.train"
+        )
+    mtime = MODEL_PATH.stat().st_mtime
+    if _bundle is None or _bundle_mtime != mtime:
         _bundle = joblib.load(MODEL_PATH)
+        _bundle_mtime = mtime
     return _bundle
 
 
@@ -44,7 +53,7 @@ class SensorReading(BaseModel):
     soilMoisture: float = Field(..., ge=0, le=100, description="Soil moisture % from ESP32")
     pressure: Optional[float] = Field(
         default=None,
-        description="BMP280 air pressure hPa. 0 or omitted → Kathmandu mean 854.27.",
+        description="Air pressure hPa. 0 or omitted → Kathmandu mean 854.27.",
     )
     device_id: Optional[str] = Field(default="esp32-irrigation")
 
@@ -58,30 +67,20 @@ class IrrigationDecision(BaseModel):
     model: str
     reasons: list[str]
     logged: bool = True
-
-
-def _reasons(reading: SensorReading) -> list[str]:
-    reasons = []
-    if reading.soilMoisture < 45:
-        reasons.append("Soil moisture is below the tomato readily-available-water band.")
-    elif reading.soilMoisture < 60:
-        reasons.append("Soil moisture is approaching the FAO tomato depletion threshold.")
-    if reading.temperature >= 30:
-        reasons.append("Air temperature is in the tomato heat-stress range; crop water use is high.")
-    if reading.humidity <= 45:
-        reasons.append("Dry air (low humidity) increases vapor pressure deficit.")
-    if not reasons:
-        reasons.append("Combined soil and climate features drive this decision.")
-    return reasons
+    headline: str
+    soil_plain: str
+    pump_plain: str
 
 
 @app.get("/health")
 def health():
     model_ok = MODEL_PATH.exists()
+    row = storage.latest()
     return {
         "status": "ok" if model_ok else "degraded",
         "model_loaded": model_ok,
         "log_rows": storage.log_count(),
+        "live": plain.is_live((row or {}).get("timestamp")),
     }
 
 
@@ -93,6 +92,7 @@ def api_info():
         "predict": "POST /predict",
         "health": "/health",
         "logs": "/api/logs",
+        "learn": "POST /api/learn",
         "docs": "/docs",
     }
 
@@ -119,8 +119,8 @@ def predict(reading: SensorReading):
     prob = float(pipeline.predict_proba(frame)[0, 1])
     irrigate = prob >= 0.5
     water_needed = 1 if irrigate else 0
-    reasons = _reasons(reading)
-    model_name = bundle.get("model_name", "unknown")
+    reasons = plain.farmer_reasons(reading.temperature, reading.humidity, reading.soilMoisture)
+    model_name = bundle.get("model_name", "xgboost")
     relay_status = "ON" if irrigate else "OFF"
 
     storage.append_decision(
@@ -138,7 +138,6 @@ def predict(reading: SensorReading):
             "reason": reasons[0],
         }
     )
-
     return IrrigationDecision(
         water_needed=water_needed,
         irrigate=irrigate,
@@ -148,6 +147,9 @@ def predict(reading: SensorReading):
         model=model_name,
         reasons=reasons,
         logged=True,
+        headline=plain.advice_headline(irrigate),
+        soil_plain=plain.soil_plain(reading.soilMoisture),
+        pump_plain="Running" if irrigate else "Stopped",
     )
 
 
@@ -155,14 +157,23 @@ def predict(reading: SensorReading):
 def status():
     model_ok = MODEL_PATH.exists()
     row = storage.latest()
+    farmer = plain.farmer_view(row)
     return {
         "model_loaded": model_ok,
         "model_path": str(MODEL_PATH.name),
+        "model_name": "xgboost",
         "log_rows": storage.log_count(),
         "latest": row,
+        "farmer": farmer,
         "pump": (row or {}).get("relayStatus") if row else None,
         "water_needed": int((row or {}).get("water_needed", 0)) if row else None,
+        "learn": learn.status(),
     }
+
+
+@app.post("/api/learn")
+def learn_now():
+    return learn.start(force=False)
 
 
 @app.get("/api/logs")
@@ -185,7 +196,7 @@ def dashboard():
     index = STATIC_DIR / "index.html"
     if not index.exists():
         raise HTTPException(status_code=404, detail="Dashboard not found")
-    return FileResponse(index)
+    return FileResponse(index, headers={"Cache-Control": "no-store"})
 
 
 if STATIC_DIR.exists():

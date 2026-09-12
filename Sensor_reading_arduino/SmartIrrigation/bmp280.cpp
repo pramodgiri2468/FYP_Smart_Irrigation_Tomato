@@ -33,7 +33,7 @@ void initBmp280() {
 
     lastBmpOK = false;
     pressure = 0.0;
-    Serial.println("BMP280 not found — API will use Kathmandu mean pressure.");
+    Serial.println("BMP280 not found — using greenhouse site pressure.");
 }
 
 bool readPressure() {

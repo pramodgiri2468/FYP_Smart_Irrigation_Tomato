@@ -12,7 +12,7 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 COPY src/ ./src/
 COPY api/ ./api/
 COPY models/ ./models/
-RUN mkdir -p /app/data/live
+RUN mkdir -p /app/data/live /app/data/processed /app/data/raw /app/results/figures
 
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1

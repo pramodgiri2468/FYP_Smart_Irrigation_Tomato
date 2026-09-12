@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <DHT.h>
 
+// ===== DHT11 PIN =====
 // Change to 41 if your DATA wire is connected to GPIO41
 #define DHT_PIN   4
 #define DHT_TYPE  DHT11
@@ -19,6 +20,7 @@ void initSensors() {
 
     Serial.print("DHT11 DATA Pin: ");
     Serial.println(DHT_PIN);
+
     Serial.println("DHT11 initialized.");
 }
 
