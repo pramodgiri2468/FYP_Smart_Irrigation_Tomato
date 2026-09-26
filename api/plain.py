@@ -106,6 +106,8 @@ def farmer_view(row: dict[str, Any] | None) -> dict[str, Any] | None:
     ).upper() == "ON"
     prob = float(row.get("probability") or 0)
     age = age_seconds(row.get("timestamp"))
+    device_id = str(row.get("device_id") or "esp32-irrigation")
+    is_simulated = (device_id == "esp32-simulated")
     return {
         "headline": advice_headline(need),
         "reason": row.get("reason") or farmer_reasons(temp, hum, soil)[0],
@@ -116,4 +118,6 @@ def farmer_view(row: dict[str, Any] | None) -> dict[str, Any] | None:
         "confidence_plain": confidence_plain(prob, need),
         "live": is_live(row.get("timestamp")),
         "age_seconds": None if age is None else round(age),
+        "device_id": device_id,
+        "is_simulated": is_simulated,
     }

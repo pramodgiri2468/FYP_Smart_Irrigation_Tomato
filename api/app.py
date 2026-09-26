@@ -76,11 +76,21 @@ class IrrigationDecision(BaseModel):
 def health():
     model_ok = MODEL_PATH.exists()
     row = storage.latest()
+    timestamp = (row or {}).get("timestamp")
+    live = plain.is_live(timestamp)
+    age = plain.age_seconds(timestamp)
     return {
         "status": "ok" if model_ok else "degraded",
         "model_loaded": model_ok,
         "log_rows": storage.log_count(),
-        "live": plain.is_live((row or {}).get("timestamp")),
+        "live": live,
+        "sensor_heartbeat": "connected" if live else "waiting_for_esp32",
+        "last_reading_age_seconds": round(age, 1) if age is not None else None,
+        "message": (
+            "ESP32 telemetry stream is active."
+            if live
+            else "Awaiting live ESP32 telemetry (last reading >90s ago). Send POST /predict or power on the node."
+        ),
     }
 
 
@@ -174,6 +184,38 @@ def status():
 @app.post("/api/learn")
 def learn_now():
     return learn.start(force=False)
+
+
+@app.post("/api/simulate")
+def simulate_telemetry(
+    soil: Optional[float] = None,
+    dry: bool = False,
+    wet: bool = False,
+):
+    """Inject a simulated live reading to immediately activate the live heartbeat and dashboard."""
+    import random
+
+    if soil is not None:
+        s = float(soil)
+    elif dry:
+        s = 38.0
+    elif wet:
+        s = 78.0
+    else:
+        s = round(random.uniform(58.0, 68.0), 1)
+
+    t = round(random.uniform(24.0, 29.5), 1)
+    h = round(random.uniform(48.0, 62.0), 1)
+    p = round(random.uniform(853.5, 855.5), 2)
+
+    reading = SensorReading(
+        temperature=t,
+        humidity=h,
+        soilMoisture=s,
+        pressure=p,
+        device_id="esp32-simulated",
+    )
+    return predict(reading)
 
 
 @app.get("/api/logs")

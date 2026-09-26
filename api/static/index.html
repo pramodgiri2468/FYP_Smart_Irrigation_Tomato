@@ -2,108 +2,422 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Tomato greenhouse</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Tomato Greenhouse · Live Telemetry & AI Irrigation</title>
+  <meta name="description" content="AI-driven precision smart irrigation dashboard for tomato greenhouses in Kathmandu. Real-time ESP32 sensors, FAO-56 micro-climate agronomics, and XGBoost inference." />
+  
+  <!-- Modern Typography (Plus Jakarta Sans & JetBrains Mono) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  
+  <!-- Dashboard Styling -->
   <link rel="stylesheet" href="/static/dashboard.css" />
+  
+  <!-- Chart.js for High-Performance Live Telemetry Graphs -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <header class="top">
-    <div>
-      <p class="eyebrow">Tomato greenhouse</p>
-      <h1>Is it time to water?</h1>
+  <!-- Ambient background glow elements -->
+  <div class="bg-glow glow-1"></div>
+  <div class="bg-glow glow-2"></div>
+  <div class="bg-glow glow-3"></div>
+
+  <div class="dashboard-container">
+    <!-- Top Header -->
+    <header class="top-nav">
+      <div class="brand-group">
+        <div class="logo-mark">
+          <span class="logo-icon">🍅</span>
+        </div>
+        <div>
+          <div class="brand-badge-row">
+            <span class="eyebrow">Tomato Greenhouse IoT</span>
+            <span class="tag-version">Kathmandu AI Node</span>
+          </div>
+          <h1 class="brand-title">Is it time to water?</h1>
+        </div>
+      </div>
+      
+      <div class="status-controls">
+        <div class="clock-display" id="local-clock">--:--:-- NPT</div>
+        <button id="btn-quick-inject" class="btn-quick-sim" type="button" title="Inject a fresh reading to activate live telemetry">
+          <span class="btn-sim-icon">⚡</span>
+          <span>Send Test Reading</span>
+        </button>
+        <div class="pills-container">
+          <div id="source-pill" class="pill source-pill">
+            <span class="source-icon">📡</span>
+            <span id="source-text" class="pill-text">Awaiting Device…</span>
+          </div>
+          <div id="live-pill" class="pill status-pill">
+            <span class="pulse-dot"></span>
+            <span class="pill-text">Waiting for sensors…</span>
+          </div>
+          <div id="pump-pill" class="pill pump-pill">
+            <span class="pump-icon">⚙️</span>
+            <span class="pill-text">Pump —</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Simulator Notice Banner -->
+    <div id="sim-banner" class="sim-alert hidden">
+      <div class="alert-icon">⚡</div>
+      <div class="alert-content">
+        <strong>Web dashboard displaying simulated data (<span id="sim-device-name">esp32-simulated</span>).</strong>
+        <span>Continuous simulator is active. To switch to your physical ESP32, stop the simulator (Ctrl+C) and power on your board.</span>
+      </div>
+      <button type="button" class="alert-dismiss" id="btn-dismiss-sim" aria-label="Dismiss notice">&times;</button>
     </div>
-    <div class="pills">
-      <span id="live-pill" class="pill">Waiting for sensors…</span>
-      <span id="pump-pill" class="pill pump">Pump —</span>
+
+    <!-- Live Physical Hardware Banner -->
+    <div id="hw-banner" class="hw-alert hidden">
+      <div class="alert-icon">🌱</div>
+      <div class="alert-content">
+        <strong>Physical ESP32 Node Connected & Streaming Live! (<span id="hw-device-name">esp32-irrigation</span>)</strong>
+        <span>Real-time greenhouse sensor telemetry streaming directly over Wi-Fi LAN to local FastAPI backend.</span>
+      </div>
+      <button type="button" class="alert-dismiss" id="btn-dismiss-hw" aria-label="Dismiss notice">&times;</button>
     </div>
-  </header>
 
-  <p id="stale-banner" class="stale hidden">
-    No new reading from the greenhouse. Check that the ESP32 and this computer are on the same Wi-Fi, and that the pump computer is running.
-  </p>
-
-  <section class="hero wait" id="decision-banner">
-    <p class="label" id="hero-label">Waiting</p>
-    <p id="decision-text">Waiting for the greenhouse sensor…</p>
-    <p id="decision-reason" class="reason">Turn on the ESP32. This page will fill in by itself.</p>
-    <p id="updated-at" class="updated"></p>
-  </section>
-
-  <section class="metrics">
-    <article class="card">
-      <p class="label">Soil water</p>
-      <p class="value" id="v-soil">—</p>
-      <p class="unit" id="soil-plain">from the soil probe</p>
-      <div class="bar"><span id="bar-soil"></span></div>
-    </article>
-    <article class="card">
-      <p class="label">Air temperature</p>
-      <p class="value" id="v-temp">—</p>
-      <p class="unit" id="temp-plain">from the greenhouse air</p>
-    </article>
-    <article class="card">
-      <p class="label">Air humidity</p>
-      <p class="value" id="v-hum">—</p>
-      <p class="unit" id="hum-plain">how moist the air feels</p>
-    </article>
-    <article class="card">
-      <p class="label">Air pressure</p>
-      <p class="value" id="v-pres">—</p>
-      <p class="unit">hPa · BMP280 or site value</p>
-    </article>
-    <article class="card pump-card" id="pump-card">
-      <p class="label">Water pump</p>
-      <p class="value" id="v-pump">—</p>
-      <p class="unit" id="confidence-plain">decided from these live readings</p>
-    </article>
-  </section>
-
-  <section class="panel">
-    <div class="panel-head">
-      <h2>Soil water over recent readings</h2>
-      <span class="muted" id="log-meta">No live rows yet</span>
+    <!-- Standby / Inactive Alert Banner -->
+    <div id="stale-banner" class="stale-alert hidden">
+      <div class="alert-icon" id="stale-icon">📡</div>
+      <div class="alert-content">
+        <strong id="stale-title">Telemetry on Standby (>90s since last packet)</strong>
+        <span id="stale-desc">Awaiting live greenhouse telemetry from physical ESP32 or telemetry simulator.</span>
+      </div>
+      <div class="alert-actions">
+        <button type="button" class="btn-alert-action" id="btn-stale-inject">⚡ Send Test Reading</button>
+        <button type="button" class="alert-dismiss" id="btn-dismiss-stale" aria-label="Dismiss notice">&times;</button>
+      </div>
     </div>
-    <svg id="chart" viewBox="0 0 640 160" preserveAspectRatio="none" role="img" aria-label="Soil moisture history"></svg>
-    <p class="muted chart-hint">0% is bone dry. 100% is fully wet. The line should move when the ESP32 is sending.</p>
-  </section>
 
-  <section class="panel">
-    <div class="panel-head">
-      <h2>Recent greenhouse readings</h2>
-      <a href="/api/logs.csv">Download log</a>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>When</th>
-            <th>Soil</th>
-            <th>Air</th>
-            <th>Humidity</th>
-            <th>What we did</th>
-          </tr>
-        </thead>
-        <tbody id="log-body">
-          <tr><td colspan="5" class="empty">Waiting for the first live reading from the greenhouse.</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
+    <!-- Hero Decision Card -->
+    <section class="hero-decision wait" id="decision-banner">
+      <div class="hero-glass-overlay"></div>
+      <div class="hero-header">
+        <div class="hero-badge">
+          <span class="hero-dot"></span>
+          <span class="label" id="hero-label">Waiting for sensors</span>
+        </div>
+        <span id="updated-at" class="updated-timestamp">Connecting…</span>
+      </div>
+      
+      <div class="hero-body">
+        <h2 id="decision-text" class="decision-heading">Waiting for the greenhouse sensor…</h2>
+        <p id="decision-reason" class="reason">Power on the ESP32 microcontroller node. Live readings will stream in automatically.</p>
+      </div>
 
-  <section class="panel learn">
-    <div class="panel-head">
-      <h2>Teach the pump from today’s sensors</h2>
-    </div>
-    <p class="muted" id="learn-meta">
-      Live readings are stored on this computer. After enough greenhouse data, the XGBoost model can learn from them.
-    </p>
-    <button type="button" id="learn-btn">Update model from greenhouse log</button>
-    <p class="muted" id="learn-status"></p>
-  </section>
+      <div class="hero-footer">
+        <div class="decision-meta-item">
+          <span class="meta-label">Decision Policy</span>
+          <span class="meta-value">FAO-56 Agronomic Depletion</span>
+        </div>
+        <div class="decision-meta-item">
+          <span class="meta-label">ML Model Engine</span>
+          <span class="meta-value" id="model-tag">XGBoost (Active)</span>
+        </div>
+        <div class="decision-meta-item">
+          <span class="meta-label">Inference Confidence</span>
+          <span class="meta-value" id="confidence-plain">Evaluating…</span>
+        </div>
+      </div>
+    </section>
 
-  <footer>
-    This screen refreshes by itself. Keep this computer awake on the same Wi-Fi as the greenhouse box.
-  </footer>
+    <!-- Live Sensor Cards (5-column Grid) -->
+    <section class="metrics-grid">
+      <!-- Soil Moisture Card -->
+      <article class="sensor-card" id="card-soil">
+        <div class="card-top">
+          <div class="icon-chip chip-soil">🌱</div>
+          <span class="label">Soil water</span>
+          <span class="status-chip chip-neutral" id="soil-plain">Probe active</span>
+        </div>
+        <div class="card-center">
+          <div class="metric-reading">
+            <span class="value" id="v-soil">—</span>
+            <span class="metric-symbol">%</span>
+          </div>
+          <div class="mini-spark-wrap">
+            <canvas class="spark-canvas" id="spark-soil" width="110" height="38"></canvas>
+          </div>
+        </div>
+        <div class="progress-track">
+          <div class="progress-bar progress-soil" id="bar-soil" style="width: 0%"></div>
+        </div>
+        <div class="card-bottom">
+          <span class="sub-label">Threshold: 55–60% MAD</span>
+          <span class="sub-value">Capacitive probe</span>
+        </div>
+      </article>
+
+      <!-- Air Temperature Card -->
+      <article class="sensor-card" id="card-temp">
+        <div class="card-top">
+          <div class="icon-chip chip-temp">🌡️</div>
+          <span class="label">Air temperature</span>
+          <span class="status-chip chip-neutral" id="temp-plain">Comfort band</span>
+        </div>
+        <div class="card-center">
+          <div class="metric-reading">
+            <span class="value" id="v-temp">—</span>
+            <span class="metric-symbol">°C</span>
+          </div>
+          <div class="mini-spark-wrap">
+            <canvas class="spark-canvas" id="spark-temp" width="110" height="38"></canvas>
+          </div>
+        </div>
+        <div class="target-range-band">
+          <span class="range-dot"></span> Optimal Tomato Range: 18°C – 27°C
+        </div>
+        <div class="card-bottom">
+          <span class="sub-label">DHT11 Ambient</span>
+          <span class="sub-value">VPD factor</span>
+        </div>
+      </article>
+
+      <!-- Relative Humidity Card -->
+      <article class="sensor-card" id="card-hum">
+        <div class="card-top">
+          <div class="icon-chip chip-hum">💧</div>
+          <span class="label">Air humidity</span>
+          <span class="status-chip chip-neutral" id="hum-plain">Balanced air</span>
+        </div>
+        <div class="card-center">
+          <div class="metric-reading">
+            <span class="value" id="v-hum">—</span>
+            <span class="metric-symbol">%</span>
+          </div>
+          <div class="mini-spark-wrap">
+            <canvas class="spark-canvas" id="spark-hum" width="110" height="38"></canvas>
+          </div>
+        </div>
+        <div class="target-range-band">
+          <span class="range-dot"></span> Transpiration Comfort: 50% – 75%
+        </div>
+        <div class="card-bottom">
+          <span class="sub-label">Relative RH</span>
+          <span class="sub-value">Evaporative demand</span>
+        </div>
+      </article>
+
+      <!-- Atmospheric Pressure Card -->
+      <article class="sensor-card" id="card-pres">
+        <div class="card-top">
+          <div class="icon-chip chip-pres">⏱️</div>
+          <span class="label">Air pressure</span>
+          <span class="status-chip chip-neutral">Kathmandu Site</span>
+        </div>
+        <div class="card-center">
+          <div class="metric-reading">
+            <span class="value" id="v-pres">—</span>
+            <span class="metric-symbol">hPa</span>
+          </div>
+          <div class="mini-spark-wrap">
+            <canvas class="spark-canvas" id="spark-pres" width="110" height="38"></canvas>
+          </div>
+        </div>
+        <div class="target-range-band">
+          <span class="range-dot"></span> Valley Elevation: ~854 hPa
+        </div>
+        <div class="card-bottom">
+          <span class="sub-label">BMP280 Barometer</span>
+          <span class="sub-value">Site calibrated</span>
+        </div>
+      </article>
+
+      <!-- Water Pump Relay Card -->
+      <article class="sensor-card pump-card" id="pump-card">
+        <div class="card-top">
+          <div class="icon-chip chip-pump" id="pump-chip-icon">⚡</div>
+          <span class="label">Water pump</span>
+          <span class="status-chip chip-neutral" id="pump-status-badge">Standby</span>
+        </div>
+        <div class="card-center">
+          <div class="metric-reading">
+            <span class="value value-pump" id="v-pump">—</span>
+          </div>
+          <div class="pump-visual-indicator" id="pump-visual">
+            <div class="ripple-ring r1"></div>
+            <div class="ripple-ring r2"></div>
+            <span class="pump-glyph">🚰</span>
+          </div>
+        </div>
+        <div class="relay-state-pill" id="relay-pill">
+          <span class="relay-led"></span> Relay: Standby (0%)
+        </div>
+        <div class="card-bottom">
+          <span class="sub-label">5V Optocoupler</span>
+          <span class="sub-value">Active-Low GPIO 1</span>
+        </div>
+      </article>
+    </section>
+
+    <!-- LIVE TELEMETRY GRAPH SECTION -->
+    <section class="analytics-panel">
+      <div class="panel-header">
+        <div class="header-title-group">
+          <div class="chart-live-badge">
+            <span class="live-dot-pulse"></span>
+            LIVE TELEMETRY STREAM
+          </div>
+          <h2 class="panel-title">Real-Time Sensor Telemetry & Trends</h2>
+          <p class="panel-subtitle" id="log-meta">Monitoring live greenhouse sensor stream from ESP32 edge node</p>
+        </div>
+
+        <div class="chart-controls">
+          <!-- Metric View Switcher Tabs -->
+          <div class="tab-group" id="chart-tabs">
+            <button type="button" class="tab-btn active" data-view="multi">All Sensors</button>
+            <button type="button" class="tab-btn" data-view="soil">Soil Moisture</button>
+            <button type="button" class="tab-btn" data-view="climate">Temp & Humidity</button>
+            <button type="button" class="tab-btn" data-view="pressure">Pressure</button>
+          </div>
+
+          <!-- History Window Limit -->
+          <div class="history-select-wrap">
+            <select id="time-window-select" class="custom-select" aria-label="Select history window">
+              <option value="30">Recent 30</option>
+              <option value="60" selected>Recent 60</option>
+              <option value="120">Recent 120</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Chart Canvas Container -->
+      <div class="chart-canvas-wrapper">
+        <canvas id="liveSensorChart" height="280"></canvas>
+        <!-- Canvas Fallback/No-data Overlay -->
+        <div id="chart-empty-overlay" class="chart-empty-overlay">
+          <div class="empty-icon-pulse">📡</div>
+          <p class="empty-title">Awaiting Live Greenhouse Telemetry</p>
+          <p class="empty-desc">Connect the ESP32 node. Real-time multi-sensor graphs will plot dynamically.</p>
+        </div>
+      </div>
+
+      <div class="chart-footer-legend">
+        <div class="legend-item" id="leg-soil">
+          <span class="legend-color-box soil-color"></span>
+          <span class="legend-name">Soil Moisture (%)</span>
+          <span class="legend-band-hint">Target: 55%–75%</span>
+        </div>
+        <div class="legend-item" id="leg-temp">
+          <span class="legend-color-box temp-color"></span>
+          <span class="legend-name">Temperature (°C)</span>
+          <span class="legend-band-hint">Ideal: 18°C–27°C</span>
+        </div>
+        <div class="legend-item" id="leg-hum">
+          <span class="legend-color-box hum-color"></span>
+          <span class="legend-name">Relative Humidity (%)</span>
+          <span class="legend-band-hint">Ideal: 50%–75%</span>
+        </div>
+        <div class="legend-item" id="leg-pres">
+          <span class="legend-color-box pres-color"></span>
+          <span class="legend-name">Pressure (hPa)</span>
+          <span class="legend-band-hint">Kathmandu: ~854 hPa</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Two-Column Section: Recent Observations & Active Learning -->
+    <div class="two-column-layout">
+      <!-- Recent Observations Table -->
+      <section class="panel-card table-panel">
+        <div class="panel-card-head">
+          <div>
+            <h3 class="panel-card-title">Recent Field Observations</h3>
+            <p class="panel-card-desc">Continuous sensor log stored locally on this machine</p>
+          </div>
+          <a href="/api/logs.csv" class="action-btn-secondary" download>
+            <span class="btn-icon">📥</span> Export CSV Log
+          </a>
+        </div>
+
+        <div class="table-container">
+          <table class="telemetry-table">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Soil Moisture</th>
+                <th>Air Temp</th>
+                <th>Humidity</th>
+                <th>Pressure</th>
+                <th>Pump Action</th>
+              </tr>
+            </thead>
+            <tbody id="log-body">
+              <tr>
+                <td colspan="6" class="table-empty">
+                  <span class="empty-spinner"></span>
+                  Waiting for initial greenhouse readings…
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Active Learning & Edge Model Adaptation -->
+      <section class="panel-card learn-panel">
+        <div class="panel-card-head">
+          <div>
+            <h3 class="panel-card-title">Greenhouse Active Learning</h3>
+            <p class="panel-card-desc">Adapt the XGBoost model to micro-climate variations</p>
+          </div>
+          <span class="model-badge">XGBoost Classifier</span>
+        </div>
+
+        <div class="learn-body">
+          <p class="learn-explainer">
+            The system accumulates real-world greenhouse readings in <code>data/live/irrigation_log.csv</code>.
+            Once at least <strong>50 verified readings</strong> are recorded, the pipeline retrains XGBoost with 
+            current field dynamics.
+          </p>
+
+          <div class="learn-meter-wrap">
+            <div class="meter-header">
+              <span class="meter-label">Sample Collection Progress</span>
+              <span class="meter-count" id="learn-count-text">0 / 50 logs</span>
+            </div>
+            <div class="meter-track">
+              <div class="meter-fill" id="learn-meter-fill" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <div class="learn-action-row">
+            <button type="button" id="learn-btn" class="action-btn-primary" disabled>
+              <span class="btn-spinner hidden" id="learn-spinner"></span>
+              <span id="learn-btn-label">Update model from greenhouse log</span>
+            </button>
+          </div>
+
+          <p class="status-feedback" id="learn-status"></p>
+          <p class="meta-note" id="learn-meta">
+            Live readings are stored on this computer. After enough greenhouse data, the XGBoost model can learn from them.
+          </p>
+        </div>
+      </section>
+    </div>
+
+    <!-- Footer -->
+    <footer class="dashboard-footer">
+      <div class="footer-left">
+        <span>🍅 <strong>Smart Irrigation for Tomato</strong> · Final Year Project</span>
+        <span class="footer-dot">•</span>
+        <span>FastAPI + XGBoost Inference Engine on Mac</span>
+      </div>
+      <div class="footer-right">
+        <span class="footer-pulse"></span>
+        <span>Auto-refreshing live telemetry (3s interval)</span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Dashboard JavaScript Logic -->
   <script src="/static/dashboard.js"></script>
 </body>
 </html>

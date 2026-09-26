@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="FYP figures" version="22.1.0" type="device">
+  <diagram id="fig06_data_collection_example" name="Fig 6 Data collection example">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title" value="Figure 6 — Data collection example  (Section 6.1)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontStyle=1;fontSize=16;align=center;verticalAlign=middle;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="16" width="1100" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="req" value="POST /predict&#xa;&#xa;temperature: 29.2&#xa;humidity: 48.0&#xa;soilMoisture: 38.5&#xa;pressure: 865" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=0;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="60" y="90" width="320" height="220" as="geometry"/>
+        </mxCell>
+        <mxCell id="res" value="Response&#xa;&#xa;water_needed: 1&#xa;probability: 0.97&#xa;relayStatus: ON&#xa;headline: Water the plants now" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=0;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="420" y="90" width="340" height="220" as="geometry"/>
+        </mxCell>
+        <mxCell id="csv" value="CSV row — data/live/irrigation_log.csv&#xa;timestamp, device_id, temperature, humidity, soilMoisture, pressure, water_needed, relayStatus, probability" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=0;fontSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="60" y="340" width="700" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="n" value="3,000 Kathmandu rows = Phase 1 training. Live CSV = Phase 2. Labels always come from FAO-56, never from water_needed." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=0;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="60" y="450" width="700" height="55" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
