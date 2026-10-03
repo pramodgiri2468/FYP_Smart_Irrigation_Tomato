@@ -26,7 +26,7 @@ RMSE of a rainfall series is the wrong metric for a relay. This project reports 
 
 **Interim:** low-power ESP32 collecting soil moisture, temperature, humidity on a Nepalese farm.
 
-**Code:** `aht10.cpp` (DHT11), `soil_moisture.cpp`, `bmp280.cpp`, `SmartIrrigation.ino` `POST /predict` every 15 s → `api/storage.py` → `data/live/irrigation_log.csv`.
+**Code:** `dht11.cpp` (DHT11), `soil_moisture.cpp`, `bmp280.cpp`, `SmartIrrigation.ino` `POST /predict` every 15 s → `api/storage.py` → `data/live/irrigation_log.csv`.
 
 **Evidence:** thousands of live rows with `temperature`, `humidity`, `soilMoisture` from `device_id=esp32-irrigation`.
 

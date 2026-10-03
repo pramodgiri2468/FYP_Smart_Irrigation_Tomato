@@ -1,8 +1,8 @@
               precision    recall  f1-score   support
 
- no_irrigate       1.00      1.00      1.00       619
-    irrigate       1.00      1.00      1.00       498
+ no_irrigate       1.00      1.00      1.00       557
+    irrigate       1.00      1.00      1.00       810
 
-    accuracy                           1.00      1117
-   macro avg       1.00      1.00      1.00      1117
-weighted avg       1.00      1.00      1.00      1117
+    accuracy                           1.00      1367
+   macro avg       1.00      1.00      1.00      1367
+weighted avg       1.00      1.00      1.00      1367

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from datetime import datetime, timezone
 from typing import Any
 
@@ -90,7 +91,12 @@ def age_seconds(timestamp: str | None) -> float | None:
     return (datetime.now(timezone.utc) - ts).total_seconds()
 
 
-def is_live(timestamp: str | None, max_age: float = 90.0) -> bool:
+def is_live(timestamp: str | None, max_age: float | None = None) -> bool:
+    if max_age is None:
+        try:
+            max_age = float(os.getenv("LIVE_MAX_AGE_SECONDS", "90.0"))
+        except ValueError:
+            max_age = 90.0
     age = age_seconds(timestamp)
     return age is not None and 0 <= age <= max_age
 

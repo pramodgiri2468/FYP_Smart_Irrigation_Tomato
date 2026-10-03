@@ -1,0 +1,215 @@
+<mxfile host="app.diagrams.net" modified="2026-10-03T16:15:00.000Z" agent="Mozilla/5.0" version="22.0.0" type="device">
+  <diagram id="system-architecture" name="System Architecture">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1050" background="#FFFFFF" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- DIAGRAM HEADER -->
+        <mxCell id="hdr_title" value="Smart Tomato Irrigation Artefact: System Architecture" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=22;fontStyle=1;fontColor=#0F172A;fontFamily=Helvetica;" vertex="1" parent="1">
+          <mxGeometry x="400" y="25" width="800" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="hdr_subtitle" value="Closed-Loop Cyber-Physical Design: Edge IoT Node, Local ML Compute Engine, Farmer UI &amp; Soil-Water Feedback" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontColor=#475569;fontFamily=Helvetica;" vertex="1" parent="1">
+          <mxGeometry x="350" y="60" width="900" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- ============================================================== -->
+        <!-- CONTAINER 1: GREENHOUSE IOT NODE (ESP32)                        -->
+        <!-- ============================================================== -->
+        <mxCell id="c1_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0F9FF;strokeColor=#0284C7;strokeWidth=2;arcSize=3;" vertex="1" parent="1">
+          <mxGeometry x="70" y="110" width="410" height="540" as="geometry" />
+        </mxCell>
+        <mxCell id="c1_hdr" value="Greenhouse IoT Node (ESP32-WROOM-32)" style="rounded=1;arcSize=4;whiteSpace=wrap;html=1;fillColor=#0284C7;strokeColor=none;fontColor=#FFFFFF;fontStyle=1;fontSize=13;align=center;" vertex="1" parent="1">
+          <mxGeometry x="70" y="110" width="410" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Sensors -->
+        <mxCell id="s_dht" value="&lt;b&gt;DHT11 Air Sensor&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#0369a1&quot;&gt;Temp (16–35°C) &amp;amp; RH (28–95%)&lt;/font&gt;&lt;br&gt;&lt;font color=&quot;#64748b&quot;&gt;Protocol: One-Wire (GPIO 4)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0F2FE;strokeColor=#38BDF8;strokeWidth=1.5;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="90" y="165" width="175" height="65" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s_bmp" value="&lt;b&gt;BMP280 Barometer&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#0369a1&quot;&gt;Pressure (~854 hPa Baseline)&lt;/font&gt;&lt;br&gt;&lt;font color=&quot;#64748b&quot;&gt;Protocol: I2C (SDA 8 / SCL 9)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0F2FE;strokeColor=#38BDF8;strokeWidth=1.5;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="285" y="165" width="175" height="65" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s_soil" value="&lt;b&gt;Capacitive Soil Moisture Probe v1.2&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#0369a1&quot;&gt;12-Bit ADC Sampling (Dry: 3800, Wet: 1400) → Scaled 0–100%&lt;/font&gt;&lt;br&gt;&lt;font color=&quot;#64748b&quot;&gt;Analog Pin: GPIO 20 (ADC2_CH9) | Digital Threshold: GPIO 36&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0F2FE;strokeColor=#38BDF8;strokeWidth=1.5;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="90" y="245" width="370" height="65" as="geometry" />
+        </mxCell>
+
+        <!-- Microcontroller -->
+        <mxCell id="m_esp" value="&lt;b&gt;ESP32 Microcontroller Core&lt;/b&gt;&lt;br&gt;• 2s Hardware Sensor Polling Interval&lt;br&gt;• 15s Rolling Window Mean Filtering (Noise Suppression)&lt;br&gt;• Autonomous Failsafe Mode (Irrigate &amp;lt;40%, Stop &amp;gt;70% if Wi-Fi Lost)&lt;br&gt;• Wi-Fi 802.11 b/g/n Station Client (WPA2 PSK)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EEF2FF;strokeColor=#6366F1;strokeWidth=1.5;fontSize=11;align=left;spacingLeft=15;" vertex="1" parent="1">
+          <mxGeometry x="90" y="325" width="370" height="95" as="geometry" />
+        </mxCell>
+
+        <!-- Actuators -->
+        <mxCell id="a_relay" value="&lt;b&gt;5V Relay Module&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#9f1239&quot;&gt;Optically Isolated Driver&lt;br&gt;Control: GPIO 1 (Active LOW)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE4E6;strokeColor=#FB7185;strokeWidth=1.5;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="90" y="440" width="175" height="65" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a_pump" value="&lt;b&gt;12V Submersible Pump&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#9f1239&quot;&gt;DC Water Motor (~1.2 L/min)&lt;br&gt;Switched 12V DC Rail&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE4E6;strokeColor=#FB7185;strokeWidth=1.5;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="285" y="440" width="175" height="65" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a_drip" value="&lt;b&gt;Precision Drip Emitters &amp;amp; Lateral Tubing&lt;/b&gt;&lt;br&gt;Direct root-zone delivery with zero evaporative mist waste" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF2F2;strokeColor=#FCA5A5;strokeWidth=1;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="90" y="525" width="370" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- Edge Wiring -->
+        <mxCell id="w1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#0284C7;strokeWidth=1.5;" edge="1" parent="1" source="s_dht" target="m_esp"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="w2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#0284C7;strokeWidth=1.5;" edge="1" parent="1" source="s_bmp" target="m_esp"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="w3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#0284C7;strokeWidth=1.5;" edge="1" parent="1" source="s_soil" target="m_esp"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="w4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6366F1;strokeWidth=1.5;" edge="1" parent="1" source="m_esp" target="a_relay"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="w5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#E11D48;strokeWidth=1.5;" edge="1" parent="1" source="a_relay" target="a_pump"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="w6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#E11D48;strokeWidth=1.5;" edge="1" parent="1" source="a_pump" target="a_drip"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- ============================================================== -->
+        <!-- CONTAINER 2: LOCAL COMPUTE HOST & MACHINE LEARNING PIPELINE     -->
+        <!-- ============================================================== -->
+        <mxCell id="c2_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECFDF5;strokeColor=#059669;strokeWidth=2;arcSize=3;" vertex="1" parent="1">
+          <mxGeometry x="560" y="110" width="460" height="540" as="geometry" />
+        </mxCell>
+        <mxCell id="c2_hdr" value="Local Processing Server &amp; ML Pipeline (Edge Host)" style="rounded=1;arcSize=4;whiteSpace=wrap;html=1;fillColor=#059669;strokeColor=none;fontColor=#FFFFFF;fontStyle=1;fontSize=13;align=center;" vertex="1" parent="1">
+          <mxGeometry x="560" y="110" width="460" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Backend REST API -->
+        <mxCell id="srv_api" value="&lt;b&gt;FastAPI Asynchronous Web Service&lt;/b&gt; &lt;i&gt;(api/app.py : Port 8000)&lt;/i&gt;&lt;br&gt;• Endpoint &lt;code&gt;POST /predict&lt;/code&gt;: Telemetry ingestion &amp;amp; ML inference (&amp;lt;25ms response)&lt;br&gt;• Diagnostic Endpoints: &lt;code&gt;GET /health&lt;/code&gt;, &lt;code&gt;GET /api/status&lt;/code&gt;, &lt;code&gt;GET /api/logs&lt;/code&gt;&lt;br&gt;• CORS Middleware, Pydantic Schema Validation &amp;amp; Thread-Safe State Lock" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D1FAE5;strokeColor=#34D399;strokeWidth=1.5;fontSize=11;align=left;spacingLeft=15;" vertex="1" parent="1">
+          <mxGeometry x="580" y="165" width="420" height="85" as="geometry" />
+        </mxCell>
+
+        <!-- Agronomic Preprocessing -->
+        <mxCell id="srv_fe" value="&lt;b&gt;FAO-56 Agronomic Feature Engineer&lt;/b&gt; &lt;i&gt;(src/features.py)&lt;/i&gt;&lt;br&gt;• Tetens Equation Vapor Pressure Deficit: &lt;font color=&quot;#065f46&quot;&gt;VPD = e_s(T) × (1 - RH/100)&lt;/font&gt;&lt;br&gt;• Reference Evapotranspiration proxy (&lt;font color=&quot;#065f46&quot;&gt;ET0&lt;/font&gt;) &amp;amp; Thermal Stress Index (T &amp;gt; 27°C)&lt;br&gt;• Soil Available Water Capacity Deficit &amp;amp; Rolling Delta Trends" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D1FAE5;strokeColor=#34D399;strokeWidth=1.5;fontSize=11;align=left;spacingLeft=15;" vertex="1" parent="1">
+          <mxGeometry x="580" y="270" width="420" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- XGBoost Model -->
+        <mxCell id="srv_xgb" value="&lt;b&gt;XGBoost Decision Classifier&lt;/b&gt; &lt;i&gt;(models/irrigation_model.joblib)&lt;/i&gt;&lt;br&gt;• Held-Out Evaluation: &lt;b&gt;F1-Score = 0.992 | Recall = 0.997 | ROC-AUC = 1.000&lt;/b&gt;&lt;br&gt;• Decision Output: &lt;font color=&quot;#065f46&quot;&gt;&lt;b&gt;water_needed ∈ {0, 1}&lt;/b&gt;&lt;/font&gt; with Probability Score&lt;br&gt;• Zero-Cloud Dependency: Local tabular execution in &amp;lt;1ms per sample" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D1FAE5;strokeColor=#059669;strokeWidth=2;fontSize=11;align=left;spacingLeft=15;" vertex="1" parent="1">
+          <mxGeometry x="580" y="370" width="420" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Storage & Continual Logging -->
+        <mxCell id="srv_log" value="&lt;b&gt;CSV Audit Log&lt;/b&gt;&lt;br&gt;&lt;code&gt;data/live/irrigation_log.csv&lt;/code&gt;&lt;br&gt;Append-only telemetry audit trail" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#F1F5F9;strokeColor=#64748B;strokeWidth=1.5;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="580" y="475" width="200" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="srv_learn" value="&lt;b&gt;Model Adaptation Buffer&lt;/b&gt;&lt;br&gt;&lt;code&gt;POST /api/learn&lt;/code&gt;&lt;br&gt;Physics-based retraining via FAO-56 (guards against circular learning)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F1F5F9;strokeColor=#64748B;strokeWidth=1.5;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="800" y="475" width="200" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Host Internal Flow -->
+        <mxCell id="hw1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#059669;strokeWidth=2;" edge="1" parent="1" source="srv_api" target="srv_fe"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="hw2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#059669;strokeWidth=2;" edge="1" parent="1" source="srv_fe" target="srv_xgb"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="hw3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#64748B;strokeWidth=1.5;" edge="1" parent="1" source="srv_api" target="srv_log"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="hw4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#64748B;strokeWidth=1.5;" edge="1" parent="1" source="srv_log" target="srv_learn"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- ============================================================== -->
+        <!-- CONTAINER 3: FARMER DASHBOARD & MONITORING INTERFACE            -->
+        <!-- ============================================================== -->
+        <mxCell id="c3_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAF5FF;strokeColor=#7C3AED;strokeWidth=2;arcSize=3;" vertex="1" parent="1">
+          <mxGeometry x="1090" y="110" width="380" height="540" as="geometry" />
+        </mxCell>
+        <mxCell id="c3_hdr" value="Farmer Interface &amp; Telemetry Dashboard" style="rounded=1;arcSize=4;whiteSpace=wrap;html=1;fillColor=#7C3AED;strokeColor=none;fontColor=#FFFFFF;fontStyle=1;fontSize=13;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1090" y="110" width="380" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Real-Time UI -->
+        <mxCell id="ui_web" value="&lt;b&gt;Responsive Web Dashboard&lt;/b&gt; &lt;i&gt;(api/static/index.html)&lt;/i&gt;&lt;br&gt;• Real-Time Chart.js Multi-Sensor Trend Visualizations&lt;br&gt;• Live State Badges (Physical Hardware vs Simulation Mode)&lt;br&gt;• Auto-Polling Telemetry Refresh (Every 3 Seconds)&lt;br&gt;• Manual Telemetry Override &amp;amp; Diagnostics Console" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#A78BFA;strokeWidth=1.5;fontSize=11;align=left;spacingLeft=15;" vertex="1" parent="1">
+          <mxGeometry x="1115" y="165" width="330" height="95" as="geometry" />
+        </mxCell>
+
+        <!-- Plain Language Advice -->
+        <mxCell id="ui_plain" value="&lt;b&gt;Plain-Language Agronomic Engine&lt;/b&gt; &lt;i&gt;(api/plain.py)&lt;/i&gt;&lt;br&gt;Translates model vectors into actionable farmer guidance:&lt;br&gt;• &lt;font color=&quot;#15803d&quot;&gt;&lt;b&gt;&quot;Soil is optimal — keep pump off.&quot;&lt;/b&gt;&lt;/font&gt;&lt;br&gt;• &lt;font color=&quot;#b91c1c&quot;&gt;&lt;b&gt;&quot;High VPD &amp;amp; root dryness — irrigate now.&quot;&lt;/b&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#A78BFA;strokeWidth=1.5;fontSize=11;align=left;spacingLeft=15;" vertex="1" parent="1">
+          <mxGeometry x="1115" y="280" width="330" height="85" as="geometry" />
+        </mxCell>
+
+        <!-- Cloud Backup Script -->
+        <mxCell id="ui_backup" value="&lt;b&gt;Cloud Audit Archival (Optional)&lt;/b&gt;&lt;br&gt;&lt;i&gt;google_sheets_script.gs&lt;/i&gt;&lt;br&gt;15-minute batched aggregate sync to Google Sheets for long-term seasonal agronomist records" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F1F5F9;strokeColor=#64748B;strokeWidth=1.5;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1115" y="385" width="330" height="65" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ui_alert" value="&lt;b&gt;Hardware Fault &amp;amp; Failsafe Watchdogs&lt;/b&gt;&lt;br&gt;Warns on out-of-range ADC probe values, disconnected I2C, or continuous pump run-time &amp;gt;120s" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF2F2;strokeColor=#FCA5A5;strokeWidth=1.5;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1115" y="470" width="330" height="65" as="geometry" />
+        </mxCell>
+
+        <!-- Dashboard Internal Flow -->
+        <mxCell id="du1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#7C3AED;strokeWidth=1.5;" edge="1" parent="1" source="ui_web" target="ui_plain"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- ============================================================== -->
+        <!-- CONTAINER 4: TOMATO RHIZOSPHERE & SOIL-WATER DYNAMICS           -->
+        <!-- ============================================================== -->
+        <mxCell id="c4_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFBEB;strokeColor=#D97706;strokeWidth=2;arcSize=3;" vertex="1" parent="1">
+          <mxGeometry x="70" y="690" width="1400" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="c4_hdr" value="Tomato Crop Rhizosphere &amp; Physical Soil-Water Feedback Loop" style="rounded=1;arcSize=4;whiteSpace=wrap;html=1;fillColor=#D97706;strokeColor=none;fontColor=#FFFFFF;fontStyle=1;fontSize=13;align=center;" vertex="1" parent="1">
+          <mxGeometry x="70" y="690" width="1400" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="f_crop" value="&lt;b&gt;Greenhouse Tomato Crop&lt;/b&gt; &lt;i&gt;(Solanum lycopersicum)&lt;/i&gt;&lt;br&gt;• Polyhouse spring climate (Kathmandu Basin)&lt;br&gt;• Comfort Temperature Band: 18°C – 30°C&lt;br&gt;• Management Allowed Depletion (MAD = 0.40)&lt;br&gt;• Target Root-Zone Soil Moisture: 55% – 75%" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#F59E0B;strokeWidth=1.5;fontSize=11;align=left;spacingLeft=15;" vertex="1" parent="1">
+          <mxGeometry x="100" y="740" width="410" height="85" as="geometry" />
+        </mxCell>
+
+        <mxCell id="f_soil" value="&lt;b&gt;Root-Zone Soil Infiltration &amp;amp; Moisture Dynamics&lt;/b&gt;&lt;br&gt;• Precision drip line delivers micro-pulses directly to tomato root volume without surface runoff&lt;br&gt;• Soil matric suction pulls water through loam matrix, increasing volumetric dielectric permittivity&lt;br&gt;• Capacitive probe detects increased dielectric capacitance, altering analog voltage on subsequent 2s cycle&lt;br&gt;&lt;font color=&quot;#92400e&quot;&gt;&lt;b&gt;[Closed-Loop Cyber-Physical Coupling: Physical water delivery directly governs future ML predictions]&lt;/b&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#D97706;strokeWidth=1.5;fontSize=11;align=left;spacingLeft=15;" vertex="1" parent="1">
+          <mxGeometry x="540" y="740" width="910" height="85" as="geometry" />
+        </mxCell>
+
+        <!-- ============================================================== -->
+        <!-- CLEAN INTER-CONTAINER ARROWS (GUTTERS ONLY - NO TEXT CROSSING)  -->
+        <!-- ============================================================== -->
+
+        <!-- 1. ESP32 to FastAPI (Telemetry Post) -->
+        <mxCell id="arr_post" value="&lt;b&gt;1. HTTP POST /predict&lt;/b&gt;&lt;br&gt;15s Rolling Mean JSON Payload&lt;br&gt;&lt;font color=&quot;#1e40af&quot;&gt;{temp, humidity, moisture, pressure}&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0284C7;strokeWidth=2.5;fontColor=#0369A1;fontSize=11;align=center;labelBackgroundColor=#FFFFFF;jumpStyle=arc;jumpSize=6;" edge="1" parent="1" source="m_esp" target="srv_api">
+          <mxGeometry x="-0.15" y="15" relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="520" y="372" />
+              <mxPoint x="520" y="207" />
+            </Array>
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 2. FastAPI/XGBoost Response back to ESP32 -->
+        <mxCell id="arr_resp" value="&lt;b&gt;2. HTTP 200 JSON Response&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#065f46&quot;&gt;{water_needed: 1/0, probability, rationale}&lt;/font&gt;&lt;br&gt;ESP32 evaluates decision &amp;amp; drives Relay" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#059669;strokeWidth=2.5;fontColor=#065F46;fontSize=11;align=center;labelBackgroundColor=#FFFFFF;jumpStyle=arc;jumpSize=6;" edge="1" parent="1" source="srv_api" target="m_esp">
+          <mxGeometry x="0.1" y="-15" relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="540" y="235" />
+              <mxPoint x="540" y="395" />
+            </Array>
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 3. API to Dashboard (State Sync) -->
+        <mxCell id="arr_dash" value="&lt;b&gt;3. State Sync&lt;/b&gt;&lt;br&gt;3s Auto-Polling &amp;amp; Logs" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#7C3AED;strokeWidth=2;fontColor=#6D28D9;fontSize=11;align=center;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="srv_api" target="ui_web">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1055" y="207" />
+              <mxPoint x="1055" y="212" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 4. Drip Manifold to Soil Bed (Water Flow) -->
+        <mxCell id="arr_water" value="&lt;b&gt;4. Hydraulic Water Delivery&lt;/b&gt; (Micro-Drip Infiltration)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0284C7;strokeWidth=2.5;fontColor=#0369A1;fontSize=11;align=center;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="a_drip" target="f_soil">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="275" y="665" />
+              <mxPoint x="680" y="665" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 5. Soil Feedback to Capacitive Probe (Closure) -->
+        <mxCell id="arr_feedback" value="&lt;b&gt;5. Dielectric Permittivity Feedback&lt;/b&gt; (Sampled on Next 2s ESP32 ADC Reading)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#D97706;strokeWidth=2.5;fontColor=#92400E;fontSize=11;align=center;labelBackgroundColor=#FFFFFF;dashed=1;" edge="1" parent="1" source="f_soil" target="s_soil">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="995" y="860" />
+              <mxPoint x="40" y="860" />
+              <mxPoint x="40" y="277" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

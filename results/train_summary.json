@@ -1,44 +1,44 @@
 {
   "best_model": "xgboost",
-  "model_path": "/app/models/irrigation_model.joblib",
-  "test_size": 1117,
+  "model_path": "/Users/pramod/Desktop/Smart-Irrigation-Tomato/models/irrigation_model.joblib",
+  "test_size": 1367,
   "leaderboard": [
     {
-      "accuracy": 0.9919427036705462,
-      "precision": 0.9899799599198397,
-      "recall": 0.9919678714859438,
-      "f1": 0.9909729187562688,
-      "roc_auc": 0.9997372365066081,
+      "accuracy": 0.9941477688368691,
+      "precision": 0.9962871287128713,
+      "recall": 0.9938271604938271,
+      "f1": 0.9950556242274413,
+      "roc_auc": 0.9997816787463705,
       "model": "xgboost",
-      "cv_f1_mean": 0.9863736959441141,
-      "cv_f1_std": 0.0033406785168429132
+      "cv_f1_mean": 0.9925873017368498,
+      "cv_f1_std": 0.0021720747685758037
     },
     {
-      "accuracy": 0.9856759176365264,
-      "precision": 0.9979338842975206,
-      "recall": 0.9698795180722891,
-      "f1": 0.9837067209775967,
-      "roc_auc": 0.9993479572571384,
+      "accuracy": 0.9868324798829554,
+      "precision": 0.9974874371859297,
+      "recall": 0.980246913580247,
+      "f1": 0.9887920298879203,
+      "roc_auc": 0.9994525345213555,
       "model": "random_forest",
-      "cv_f1_mean": 0.9767315839834925,
-      "cv_f1_std": 0.003609239373566852
+      "cv_f1_mean": 0.9861289501915534,
+      "cv_f1_std": 0.004350960071706181
     },
     {
-      "accuracy": 0.97224709042077,
-      "precision": 0.989517819706499,
-      "recall": 0.9477911646586346,
-      "f1": 0.9682051282051282,
-      "roc_auc": 0.9982028274649486,
+      "accuracy": 0.9758595464520848,
+      "precision": 0.986232790988736,
+      "recall": 0.9728395061728395,
+      "f1": 0.9794903666873834,
+      "roc_auc": 0.9985105392645788,
       "model": "svm",
-      "cv_f1_mean": 0.9560876588573894,
-      "cv_f1_std": 0.00458305847853906
+      "cv_f1_mean": 0.9772429990493638,
+      "cv_f1_std": 0.006429848495219147
     },
     {
-      "accuracy": 0.9409131602506714,
-      "precision": 0.9931506849315068,
-      "recall": 0.8734939759036144,
-      "f1": 0.9294871794871795,
-      "roc_auc": 0.9363106707930268,
+      "accuracy": 0.880760790051207,
+      "precision": 0.8810365135453475,
+      "recall": 0.9234567901234568,
+      "f1": 0.9017480409885473,
+      "roc_auc": 0.9501230134982379,
       "model": "soil_threshold_55pct",
       "cv_f1_mean": NaN,
       "cv_f1_std": NaN
@@ -46,29 +46,29 @@
   ],
   "historical_pump_leaderboard": [
     {
-      "accuracy": 0.9829901521933752,
-      "precision": 0.9932279909706546,
-      "recall": 0.9649122807017544,
-      "f1": 0.978865406006674,
-      "roc_auc": 0.9980624784351196,
+      "accuracy": 0.9926847110460864,
+      "precision": 0.9960988296488946,
+      "recall": 0.9909443725743855,
+      "f1": 0.993514915693904,
+      "roc_auc": 0.9997931013454947,
       "model": "xgboost"
     },
     {
-      "accuracy": 0.9758281110116384,
-      "precision": 0.9976798143851509,
-      "recall": 0.9429824561403509,
-      "f1": 0.9695603156708005,
-      "roc_auc": 0.9968050800222947,
+      "accuracy": 0.9890270665691295,
+      "precision": 1.0,
+      "recall": 0.9805950840879689,
+      "f1": 0.9902024820378837,
+      "roc_auc": 0.999588380571563,
       "model": "random_forest"
     },
     {
-      "accuracy": 0.9749328558639212,
-      "precision": 0.9953703703703703,
-      "recall": 0.9429824561403509,
-      "f1": 0.9684684684684685,
-      "roc_auc": 0.9931290973272819,
+      "accuracy": 0.9824433065106072,
+      "precision": 0.9947159841479525,
+      "recall": 0.9741267787839586,
+      "f1": 0.984313725490196,
+      "roc_auc": 0.9959360748493996,
       "model": "svm"
     }
   ],
-  "classification_report": "              precision    recall  f1-score   support\n\n no_irrigate       1.00      1.00      1.00       619\n    irrigate       1.00      1.00      1.00       498\n\n    accuracy                           1.00      1117\n   macro avg       1.00      1.00      1.00      1117\nweighted avg       1.00      1.00      1.00      1117\n"
+  "classification_report": "              precision    recall  f1-score   support\n\n no_irrigate       1.00      1.00      1.00       557\n    irrigate       1.00      1.00      1.00       810\n\n    accuracy                           1.00      1367\n   macro avg       1.00      1.00      1.00      1367\nweighted avg       1.00      1.00      1.00      1367\n"
 }

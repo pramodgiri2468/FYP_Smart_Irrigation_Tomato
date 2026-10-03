@@ -116,7 +116,7 @@ def objective_1_sensing(live: pd.DataFrame) -> dict[str, Any]:
     return {
         "status": "met" if n > 0 and has_cols and soil_ok else "partial",
         "code": [
-            "Sensor_reading_arduino/SmartIrrigation/aht10.cpp",
+            "Sensor_reading_arduino/SmartIrrigation/dht11.cpp",
             "Sensor_reading_arduino/SmartIrrigation/soil_moisture.cpp",
             "Sensor_reading_arduino/SmartIrrigation/bmp280.cpp",
             "Sensor_reading_arduino/SmartIrrigation/SmartIrrigation.ino",

@@ -105,11 +105,11 @@ def ingest(*, live_only: bool = False, min_rows: int = 50) -> Path:
     if live_only:
         combined = live
     else:
-        if PROCESSED_CSV.exists():
-            old = pd.read_csv(PROCESSED_CSV)
-        else:
-            old = _finalize(build_processed(load_raw()))
-        combined = pd.concat([old[KEEP], live], ignore_index=True)
+        base = _finalize(build_processed(load_raw()))
+        combined = pd.concat([base, live], ignore_index=True)
+        combined = combined.drop_duplicates(
+            subset=["temperature", "humidity", "soilMoisture", "pressure", "device_id"]
+        )
 
     PROCESSED_CSV.parent.mkdir(parents=True, exist_ok=True)
     combined.to_csv(PROCESSED_CSV, index=False)

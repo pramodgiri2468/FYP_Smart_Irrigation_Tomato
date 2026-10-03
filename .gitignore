@@ -1,12 +1,33 @@
+# Byte-compiled / optimized / cache files
 __pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Virtual environments
 .venv/
+env/
+venv/
+
+# Jupyter
 .ipynb_checkpoints/
-*.pyc
+
+# Environment and OS files
 .env
 .DS_Store
-results/figures/.DS_Store
+**/.DS_Store
 
-results/.mplconfig/
+# Telemetry live data logs
 data/live/*.csv
+results/.mplconfig/
 
-test/
+# LaTeX compilation auxiliary files
+docs/latex/*.aux
+docs/latex/*.bbl
+docs/latex/*.blg
+docs/latex/*.log
+docs/latex/*.out
+docs/latex/*.toc
+docs/latex/*.synctex.gz
+docs/latex/*.fdb_latexmk
+docs/latex/*.fls

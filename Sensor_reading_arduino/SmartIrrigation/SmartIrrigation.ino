@@ -17,7 +17,7 @@
 
 // This Mac's LAN IP (ipconfig getifaddr en0). Same Wi-Fi as the ESP32.
 #define ENABLE_FASTAPI 1
-#define API_HOST "192.168.1.66"
+#define API_HOST "192.168.1.76"
 #define API_PORT 8000
 
 // Used when BMP280 is missing (Kathmandu greenhouse site, hPa)
@@ -92,13 +92,44 @@ float currentPressureHpa() {
   return SITE_PRESSURE_HPA;
 }
 
+const char *wifiStatusToString(wl_status_t status) {
+  switch (status) {
+    case WL_NO_SHIELD: return "WL_NO_SHIELD";
+    case WL_IDLE_STATUS: return "WL_IDLE_STATUS";
+    case WL_NO_SSID_AVAIL: return "WL_NO_SSID_AVAIL (SSID not found — verify 2.4 GHz band and SSID spelling)";
+    case WL_SCAN_COMPLETED: return "WL_SCAN_COMPLETED";
+    case WL_CONNECTED: return "WL_CONNECTED";
+    case WL_CONNECT_FAILED: return "WL_CONNECT_FAILED (Password incorrect or authentication failed)";
+    case WL_CONNECTION_LOST: return "WL_CONNECTION_LOST";
+    case WL_DISCONNECTED: return "WL_DISCONNECTED (Disconnected from AP)";
+    default: return "UNKNOWN";
+  }
+}
+
+unsigned long lastWiFiAttemptMillis = 0;
+const unsigned long WIFI_RETRY_COOLDOWN = 10000; // Wait 10s before attempting a new full connection
+
 bool ensureWiFiConnected() {
   if (WiFi.status() == WL_CONNECTED) {
     return true;
   }
 
-  Serial.print("Connecting to WiFi");
+  unsigned long now = millis();
+  if (lastWiFiAttemptMillis != 0 && (now - lastWiFiAttemptMillis < WIFI_RETRY_COOLDOWN)) {
+    return false;
+  }
+  lastWiFiAttemptMillis = now;
+
+  Serial.print("Connecting to WiFi (SSID: ");
+  Serial.print(WIFI_SSID);
+  Serial.println(")...");
+
+  // Disconnect any in-flight attempt to prevent 'wifi:sta is connecting, cannot set config'
+  WiFi.disconnect(true);
+  delay(100);
+
   WiFi.mode(WIFI_STA);
+  WiFi.setAutoReconnect(true);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
 
   unsigned long connectStart = millis();
@@ -110,12 +141,13 @@ bool ensureWiFiConnected() {
   Serial.println();
 
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.print("WiFi Connected! IP ");
+    Serial.print("WiFi Connected! IP: ");
     Serial.println(WiFi.localIP());
     return true;
   }
 
-  Serial.println("WiFi connection failed.");
+  Serial.print("WiFi connection failed. Reason: ");
+  Serial.println(wifiStatusToString(WiFi.status()));
   return false;
 }
 
