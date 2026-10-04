@@ -1,78 +1,181 @@
 # Smart Irrigation System for Tomato Cultivation Using IoT and Machine Learning
 
-[![Python 3.12+](https://img.shields.io/badge/Python-3.12%20%7C%203.13-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Python 3.11 | 3.12 | 3.13](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![XGBoost](https://img.shields.io/badge/XGBoost-2.1+-EB5424?logo=xgboost&logoColor=white)](https://xgboost.readthedocs.io/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](https://docs.docker.com/compose/)
+[![Test Suite](https://img.shields.io/badge/Tests-11%20Passed-success?logo=pytest&logoColor=white)](tests/)
+[![Accuracy](https://img.shields.io/badge/Accuracy-99.4%25-brightgreen)](results/train_summary.json)
+[![F1-Score](https://img.shields.io/badge/F1--Score-0.995-brightgreen)](results/train_summary.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A complete closed-loop IoT and Machine Learning smart irrigation system designed for greenhouse tomato (*Solanum lycopersicum*) cultivation in the sub-tropical microclimate of Kathmandu, Nepal.
+A complete closed-loop IoT and Machine Learning smart irrigation system engineered specifically for greenhouse tomato (*Solanum lycopersicum*) cultivation in the sub-tropical microclimate of Kathmandu, Nepal. 
 
-An **ESP32** microcontroller node continuously samples soil moisture (capacitive probe), air temperature and relative humidity (DHT11), and barometric pressure (BMP280). Sensor readings are averaged across rolling 15-second windows and transmitted over local Wi-Fi to a **FastAPI backend** running on a local PC/Mac or Docker container. 
+The system transitions precision agriculture away from naive, scalar soil moisture thresholds toward an **FAO-56 Penman-Monteith crop-water stress model**. By evaluating real-time atmospheric evaporative demand (Vapour Pressure Deficit, $\text{ET}_0$ proxy, and heat stress) alongside root-zone moisture deficit, the decision engine triggers targeted drip irrigation only when biologically required—achieving **40.7% to 41.7% water savings** compared to conventional calendar scheduling while safeguarding crops against water stress.
 
-The backend runs an **FAO-56 Penman-Monteith agronomic feature engineering pipeline** (VPD, $\text{ET}_0$ proxy, moisture deficit, thermal stress) and evaluates the crop state using a trained **XGBoost classifier (Test F1: 0.993, ROC-AUC: 1.000)**. An instantaneous actuation decision (`water_needed: 1/0`) is returned to the ESP32 to trigger the 5V relay and submersible drip irrigation pump. A local web dashboard displays real-time telemetry, live trends, pump actuation status, and plain-language agronomic advice for farmers.
+---
+
+## Visual Preview & Prototypes
+
+| System Architecture & Telemetry | Physical Actuation Prototype |
+| :---: | :---: |
+| ![Comprehensive System Architecture](docs/latex/figures/Final_Year_Project_System_Design.png) | ![Final Working Prototype](docs/latex/figures/fig16_final_working_prototype.png) |
+
+| Farmer Web Dashboard (Real-Time Telemetry & Advice) | Drip Pump & Optocoupled 5V Relay Actuation |
+| :---: | :---: |
+| ![Farmer Web Dashboard](docs/latex/figures/fig14_web_dashboard.png) | ![Pump Relay Setup](docs/latex/figures/fig15_pump_relay_setup.png) |
 
 ---
 
 ## Table of Contents
 
-1. [Quickstart: Initializing the Project](#quickstart-initializing-the-project)
-   - [Option A: Docker Compose (Recommended)](#option-a-docker-compose-recommended)
+1. [Key Features & Highlights](#key-features--highlights)
+2. [System Architecture](#system-architecture)
+   - [Six-Layer Architecture](#six-layer-architecture)
+   - [Architectural Flowchart](#architectural-flowchart)
+   - [Physical Deployment Mapping](#physical-deployment-mapping)
+3. [Quickstart & Installation](#quickstart--installation)
+   - [Option A: Docker Compose (Zero-Setup, Recommended)](#option-a-docker-compose-zero-setup-recommended)
    - [Option B: Local Python Virtual Environment](#option-b-local-python-virtual-environment)
-   - [Verifying Service Health & Dashboard](#verifying-service-health--dashboard)
-2. [Telemetry & Testing Modes](#telemetry--testing-modes)
+   - [Verifying Services & Dashboard](#verifying-services--dashboard)
+4. [Telemetry & Operational Modes](#telemetry--operational-modes)
    - [Mode 1: Telemetry Simulator (Hardware-Free)](#mode-1-telemetry-simulator-hardware-free)
    - [Mode 2: Physical ESP32 Hardware Node](#mode-2-physical-esp32-hardware-node)
    - [Mode 3: Google Sheets Telemetry Bridge](#mode-3-google-sheets-telemetry-bridge)
-3. [System Architecture](#system-architecture)
-4. [Hardware Setup & Pinout](#hardware-setup--pinout)
+5. [Hardware Setup & Pinout](#hardware-setup--pinout)
    - [Wiring Pinout Table](#wiring-pinout-table)
-   - [Soil Moisture Probe Calibration](#soil-moisture-probe-calibration)
+   - [Capacitive Soil Probe Calibration](#capacitive-soil-probe-calibration)
    - [Configuring ESP32 Firmware](#configuring-esp32-firmware)
-5. [Machine Learning Pipeline & Agronomic Theory](#machine-learning-pipeline--agronomic-theory)
-   - [FAO-56 Agronomic Features](#fao-56-agronomic-features)
-   - [Why XGBoost over LSTM](#why-xgboost-over-lstm)
+   - [Dual-Safety Offline Failsafe](#dual-safety-offline-failsafe)
+6. [Machine Learning Pipeline & Agronomic Theory](#machine-learning-pipeline--agronomic-theory)
+   - [FAO-56 Agronomic Feature Engineering](#fao-56-agronomic-feature-engineering)
+   - [Architectural Decision: Why XGBoost over LSTM](#architectural-decision-why-xgboost-over-lstm)
    - [Model Comparison Leaderboard](#model-comparison-leaderboard)
-6. [Active Learning & Model Retraining](#active-learning--model-retraining)
-7. [API Endpoints Reference](#api-endpoints-reference)
-8. [Automated Testing & Project Evaluation](#automated-testing--project-evaluation)
-9. [Repository Directory Structure](#repository-directory-structure)
-10. [Google Colab Notebooks](#google-colab-notebooks)
-11. [Troubleshooting & FAQ](#troubleshooting--faq)
-12. [License](#license)
+   - [Evaluation Metrics & Visualizations](#evaluation-metrics--visualizations)
+7. [Active Learning & Continuous Retraining](#active-learning--continuous-retraining)
+8. [REST API Reference](#rest-api-reference)
+9. [Automated Testing & Formal Objectives Audit](#automated-testing--formal-objectives-audit)
+10. [Repository Directory Structure](#repository-directory-structure)
+11. [Google Colab Notebooks](#google-colab-notebooks)
+12. [Troubleshooting & FAQ](#troubleshooting--faq)
+13. [Academic Attribution & License](#academic-attribution--license)
 
 ---
 
-## Quickstart: Initializing the Project
+## Key Features & Highlights
+
+- **Closed-Loop Actuation Cycle:** Samples sensors every 2 seconds, computes rolling 15-second noise-filtered averages, queries FastAPI inference in $<15\text{ ms}$, and actuates a 12V submersible drip pump via an active-LOW optocoupled relay.
+- **Agronomic Intelligence (FAO-56):** Computes Tetens Vapour Pressure Deficit (VPD), reference evapotranspiration proxy ($\text{ET}_0$), crop thermal stress, and root-zone moisture deficit rather than relying on crude single-variable thresholds.
+- **High-Performance Classifier:** Champion **XGBoost Classifier** achieving **0.995 F1-Score**, **99.4% Accuracy**, and **1.000 ROC-AUC** across 1,367 held-out test records (from 6,834 processed samples), substantially outperforming Random Forest, Support Vector Machines, and static threshold heuristics.
+- **Water Conservation:** Saves **40.7% to 41.7% of irrigation water** over fixed calendar watering without under-irrigating during high transpiration periods.
+- **Cloud-Independent Local Compute:** Operates entirely over local 2.4 GHz Wi-Fi with sub-150ms round-trip latency, eliminating monthly cloud fees and protecting data privacy.
+- **Dual-Safety Offline Failsafe:** If Wi-Fi disconnects or the host server goes to sleep, the ESP32 automatically activates an embedded hysteresis rule (`tomato_thresholds.h`) to keep plants healthy.
+- **Farmer-Centric Web Dashboard:** Interactive real-time telemetry dashboard featuring Chart.js time-series, live gauges, relay status indicators, instant simulator injection, and plain-language agronomic explanations.
+- **Active Learning Retraining Pipeline:** Continuously ingests live field logs, computes unbiased labels using physical crop rules (preventing circular model drift), and hot-reloads model weights with zero server downtime.
+
+---
+
+## System Architecture
+
+### Six-Layer Architecture
+
+The system follows a modular, six-layer architecture designed for fault tolerance, transparency, and rapid edge execution:
+
+| Layer | Responsibility | Technical Implementation |
+| :--- | :--- | :--- |
+| **1. Physical Sensing** | Environmental data acquisition | Capacitive soil probe (GPIO 20 ADC / GPIO 36 DO), DHT11 temp/humidity (GPIO 4), BMP280 barometric pressure (I2C SDA GPIO 8, SCL GPIO 9). |
+| **2. Edge Microcontroller** | Signal filtering, buffer averaging, and failsafe | ESP32-WROOM-32 / ESP32-S3 executing 2s sampling, 15s rolling averaging, and autonomous threshold fallback. |
+| **3. Communication & Networking** | Low-latency local REST transport | 2.4 GHz 802.11 b/g/n Wi-Fi, HTTP POST `/predict` with 8-second client timeout and sub-30ms local LAN transmission. |
+| **4. Ingestion & Storage** | Telemetry logging & data governance | FastAPI ingestion appending immutable records to `data/live/irrigation_log.csv` (8,150+ live field rows logged). |
+| **5. Inference & Decision** | Feature engineering & ML evaluation | Scikit-learn pipeline (`FeatureEngineer`) extracting FAO-56 metrics feeding serialized `irrigation_model.joblib` in $<15\text{ ms}$. |
+| **6. Actuation & Presentation** | Drip delivery & farmer decision support | Active-LOW 5V relay (GPIO 1), 12V DC pump, and responsive web dashboard with plain-language advice. |
+
+### Architectural Flowchart
+
+```mermaid
+flowchart TB
+  subgraph greenhouse["Greenhouse Edge Environment"]
+    direction TB
+    dht["DHT11 Sensor<br/>(Air Temp & Humidity)"]
+    bmp["BMP280 Sensor<br/>(Barometric Pressure)"]
+    soil["Capacitive Soil Probe<br/>(Dielectric Permittivity)"]
+    
+    esp["ESP32 Microcontroller<br/>• Non-blocking 2s sampling<br/>• 15s rolling window filter<br/>• Offline failsafe logic"]
+    
+    relay["5V Optocoupled Relay<br/>(GPIO 1, Active LOW)"]
+    pump["12V Submersible Pump<br/>(Root-Zone Drip Lines)"]
+    
+    dht -->|1-Wire Digital GPIO 4| esp
+    bmp -->|I2C GPIO 8/9| esp
+    soil -->|12-bit ADC GPIO 20| esp
+    esp -->|Relay Trigger| relay
+    relay -->|12V DC Power| pump
+  end
+
+  subgraph network["Local Area Network (2.4 GHz Wi-Fi)"]
+    esp -->|"HTTP POST /predict<br/>(JSON payload, 15s interval)"| api
+    api -->|"HTTP 200 Response<br/>{water_needed: 1/0, prob, reasons}"| esp
+  end
+
+  subgraph host["Local Compute Host (FastAPI + ML Engine)"]
+    direction TB
+    api["FastAPI Backend REST Service<br/>(api/app.py)"]
+    fe["FAO-56 Feature Pipeline<br/>(VPD, ET0 Proxy, Deficit, Heat Stress)"]
+    xgb["Champion XGBoost Model<br/>(models/irrigation_model.joblib)"]
+    store["Immutable CSV Telemetry Store<br/>(data/live/irrigation_log.csv)"]
+    active["Active Learning Retrainer<br/>(src/ingest_live.py)"]
+    plain["Agronomic Plain-Language Engine<br/>(api/plain.py)"]
+    dash["Farmer Web Dashboard<br/>(api/static/index.html)"]
+
+    api --> fe
+    fe --> xgb
+    xgb -->|"Actuation Decision (1/0)"| api
+    api --> store
+    store --> active
+    active -.->|"Hot-Reload Model Weights"| xgb
+    api --> plain
+    plain --> dash
+    store --> dash
+  end
+```
+
+### Physical Deployment Mapping
+
+![Deployment Architecture](docs/latex/figures/deployment-architecture.png)
+
+---
+
+## Quickstart & Installation
 
 ### Prerequisites
-* **Python 3.11, 3.12, or 3.13** (`python3 --version`)
-* **Docker Desktop** (optional, recommended for zero-dependency containerized startup)
-* **Arduino IDE 2.x** (only required if flashing the physical ESP32 node)
+- **Python 3.11, 3.12, or 3.13** (`python3 --version`)
+- **Docker & Docker Compose** (optional, recommended for zero-dependency containerized startup)
+- **Arduino IDE 2.x** (only required if compiling and flashing the physical ESP32 node)
 
 ---
 
-### Option A: Docker Compose (Recommended)
+### Option A: Docker Compose (Zero-Setup, Recommended)
 
-1. **Clone and enter the repository:**
+1. **Clone the repository and enter the directory:**
    ```bash
-   cd ~/Desktop/Smart-Irrigation-Tomato
+   git clone https://github.com/pramodgiri2468/FYP_Smart_Irrigation_Tomato.git
+   cd FYP_Smart_Irrigation_Tomato
    ```
 
-2. **Build and launch the container:**
+2. **Build and start the container:**
    ```bash
    docker compose up -d --build
    ```
 
-3. **Check container status:**
+3. **Verify running status and health check:**
    ```bash
    docker compose ps
    ```
-   The service `smart-irrigation-api` will report `Up (healthy)` on `0.0.0.0:8000->8000/tcp`.
+   *The container `smart-irrigation-api` will report `Up (healthy)` listening on `0.0.0.0:8000`.*
 
-4. **View logs or stop:**
+4. **Monitor live logs or stop the service:**
    ```bash
-   docker compose logs -f api       # Follow live logs
+   docker compose logs -f api       # Follow real-time server logs
    docker compose down              # Stop the container
    ```
 
@@ -80,94 +183,91 @@ The backend runs an **FAO-56 Penman-Monteith agronomic feature engineering pipel
 
 ### Option B: Local Python Virtual Environment
 
-If running directly without Docker:
-
 1. **Create and activate a virtual environment:**
    ```bash
-   cd ~/Desktop/Smart-Irrigation-Tomato
    python3 -m venv .venv
    source .venv/bin/activate        # On Windows: .venv\Scripts\activate
    ```
 
-2. **Install dependencies:**
+2. **Install Python dependencies:**
    ```bash
    pip install --upgrade pip
    pip install -r requirements.txt
    ```
 
-3. **Train the baseline model (if not already built):**
+3. **Preprocess dataset and train baseline model (if not already built):**
    ```bash
    python3 -m src.preprocess
    python3 -m src.train
    ```
 
-4. **Start the FastAPI backend server:**
+4. **Launch the FastAPI application server:**
    ```bash
    PYTHONPATH=. python3 -m uvicorn api.app:app --host 0.0.0.0 --port 8000 --reload
    ```
 
 ---
 
-### Verifying Service Health & Dashboard
+### Verifying Services & Dashboard
 
-Once started, open your web browser to:
-* **Farmer Web Dashboard:** [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
-* **Health Check & Heartbeat:** [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)
-* **Interactive OpenAPI Swagger Docs:** [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+Once the server is running, open your web browser to:
+- **Farmer Web Dashboard:** [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
+- **Service Health Check & Heartbeat:** [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)
+- **Interactive OpenAPI Swagger Docs:** [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+- **Latest Telemetry & Farmer Advice JSON:** [http://127.0.0.1:8000/api/status](http://127.0.0.1:8000/api/status)
 
 > [!NOTE]
-> On initial launch, the dashboard displays `live: false` with a standby notice. This is normal until the first sensor readings arrive from the simulator or physical ESP32.
+> On fresh startup, the dashboard displays `live: false` in standby mode. This is normal until the first telemetry packets arrive from either the simulator or the physical ESP32 node.
 
 ---
 
-## Telemetry & Testing Modes
+## Telemetry & Operational Modes
 
 The project supports three distinct operational modes:
 
 ### Mode 1: Telemetry Simulator (Hardware-Free)
 
-Validate the full end-to-end ML inference, dashboard charts, and pump decisions without physical hardware:
+Test full end-to-end ML inference, dashboard charts, and pump decisions without physical hardware:
 
-1. **One-Click Web Test:** Click the **`⚡ Send Test Reading`** button in the dashboard navigation bar. The dashboard will immediately show live telemetry and update charts.
-2. **Continuous CLI Stream:** In a separate terminal window, run:
+1. **One-Click Web Test:** Open [http://127.0.0.1:8000/](http://127.0.0.1:8000/) and click the **`⚡ Send Test Reading`** button in the top navigation bar. Telemetry and charts update immediately.
+2. **Continuous CLI Streaming:** In a separate terminal window, run:
    ```bash
    python3 -m src.simulate_esp32
    ```
-   * Emits realistic greenhouse sensor readings every 5 seconds.
-   * Press `Ctrl+C` to terminate the stream.
+   *Streams realistic diurnal greenhouse sensor packets every 5 seconds. Press `Ctrl+C` to terminate.*
 3. **Simulate Specific Agronomic Conditions:**
    ```bash
-   python3 -m src.simulate_esp32 --dry        # Critically dry (<40%) -> Pump ON
-   python3 -m src.simulate_esp32 --wet        # Waterlogged (>75%)   -> Pump OFF
-   python3 -m src.simulate_esp32 --soil 35.0   # Explicit soil moisture value
-   python3 -m src.simulate_esp32 --once       # Send 1 packet and exit
+   python3 -m src.simulate_esp32 --dry        # Critically dry soil (<40%) -> Pump ON
+   python3 -m src.simulate_esp32 --wet        # Saturated soil (>75%)     -> Pump OFF
+   python3 -m src.simulate_esp32 --soil 35.0   # Explicit soil moisture input
+   python3 -m src.simulate_esp32 --once       # Send a single packet and exit
    ```
 
 ---
 
 ### Mode 2: Physical ESP32 Hardware Node
 
-1. Connect your ESP32 board and sensors according to the [Wiring Pinout Table](#wiring-pinout-table).
+1. Wire the sensors, ESP32, and relay according to the [Wiring Pinout Table](#wiring-pinout-table).
 2. Open [`Sensor_reading_arduino/SmartIrrigation/SmartIrrigation.ino`](Sensor_reading_arduino/SmartIrrigation/SmartIrrigation.ino) in Arduino IDE.
-3. Install required libraries in Arduino IDE (**Library Manager**):
-   * `DHT sensor library` by Adafruit
-   * `Adafruit BMP280 Library`
-   * `Adafruit Unified Sensor`
-4. Update your Wi-Fi credentials and your computer's local IP address:
+3. Install required sensor libraries via Arduino Library Manager:
+   - `DHT sensor library` by Adafruit
+   - `Adafruit BMP280 Library`
+   - `Adafruit Unified Sensor`
+4. Configure your 2.4 GHz Wi-Fi credentials and your computer's local IP address:
    ```cpp
    #define WIFI_SSID "Your_WiFi_Name"
    #define WIFI_PASS "Your_WiFi_Password"
-   #define API_HOST  "192.168.1.XX"       // IP of the machine running FastAPI
+   #define API_HOST  "192.168.1.XX"       // IP address of host running FastAPI
    #define API_PORT  8000
    ```
-5. Select your board (**ESP32 Dev Module**) and USB port, then click **Upload**.
-6. Open **Serial Monitor** at **115200 baud** to verify sensor reads and `POST /predict` responses. The web dashboard will automatically display `🌱 Physical ESP32`.
+5. Select your board (**ESP32 Dev Module** or **ESP32-S3**) and USB port, then click **Upload**.
+6. Open **Serial Monitor** at **115200 baud** to monitor sensor sampling and `POST /predict` HTTP round-trips. The web dashboard will automatically display `🌱 Physical ESP32`.
 
 ---
 
 ### Mode 3: Google Sheets Telemetry Bridge
 
-When the ESP32 is deployed in remote tunnels logging to Google Sheets (`ENABLE_GOOGLE_SHEETS 1` in `SmartIrrigation.ino`), sync the cloud records to your local dashboard:
+When deploying the node in remote high tunnels logging to Google Sheets (`ENABLE_GOOGLE_SHEETS 1` in `SmartIrrigation.ino`), sync the cloud records to your local dataset:
 
 ```bash
 # Ingest an exported TSV or CSV from Google Sheets:
@@ -179,84 +279,47 @@ python3 -m src.sync_google_sheets --poll
 
 ---
 
-## System Architecture
-
-The project implements a six-layer closed-loop architecture:
-
-```mermaid
-flowchart LR
-  subgraph node["Physical Edge Node (ESP32)"]
-    direction TB
-    sensors["DHT11 (Air Temp/RH)<br/>BMP280 (Pressure)<br/>Capacitive Soil Probe"]
-    esp["ESP32 Controller<br/>(15s Rolling Average)"]
-    relay["5V Relay Module<br/>(GPIO 1, Active LOW)"]
-    pump["12V Submersible Pump<br/>(Drip Irrigation)"]
-    sensors --> esp
-    esp -->|Actuation| relay
-    relay --> pump
-  end
-
-  subgraph backend["Local Compute Host (FastAPI + ML)"]
-    direction TB
-    api["FastAPI REST Service<br/>(POST /predict)"]
-    fe["FAO-56 Feature Pipeline<br/>(VPD, ET0, Heat/Moisture Deficit)"]
-    xgb["Champion XGBoost Model<br/>(Test F1: 0.993)"]
-    storage["CSV Transaction Store<br/>(irrigation_log.csv)"]
-    dash["Farmer Web Dashboard<br/>(Real-Time Charts & Status)"]
-    
-    api --> fe
-    fe --> xgb
-    xgb -->|Decision: 1/0| api
-    api --> storage
-    storage --> dash
-  end
-
-  esp -->|"HTTP POST (Wi-Fi 2.4 GHz)"| api
-  api -->|"HTTP 200 {water_needed: 1/0}"| esp
-```
-
-| Layer | Function | Implementation |
-| :--- | :--- | :--- |
-| **1. Sensing** | Environmental data acquisition | Capacitive soil probe (GPIO 20/36), DHT11 (GPIO 4), BMP280 (I2C GPIO 8/9). |
-| **2. Processing** | Edge sampling, filtering, and failsafe | ESP32-WROOM-32 running 2s sampling, 15s averaging, and offline threshold fallback. |
-| **3. Communication** | Microcontroller to backend REST transport | 2.4 GHz Wi-Fi, HTTP POST `/predict` with JSON payload, sub-30ms local latency. |
-| **4. Storage** | Telemetry logging & historical data | Append-only store in `data/live/irrigation_log.csv` and 3,000 raw baseline records. |
-| **5. Decision** | Agronomic feature engineering & ML inference | FastAPI (`api/app.py`), FAO-56 physics (`src/features.py`), XGBoost (`models/`). |
-| **6. Actuation** | Closed-loop irrigation delivery | Active-LOW 5V relay (GPIO 1), 12V DC pump, and root-zone drip manifold. |
-
----
-
 ## Hardware Setup & Pinout
+
+### Wiring Schematic
+
+![Physical Hardware Wiring](docs/latex/figures/fig04_physical_iot_hardware.png)
 
 ### Wiring Pinout Table
 
-| Sensor / Module | Pin / Signal | ESP32 Pin | Interface / Operating Notes |
+| Sensor / Module | Signal / Pin | ESP32 Pin | Interface / Electrical Characteristics |
 | :--- | :--- | :--- | :--- |
-| **DHT11** | DATA | **GPIO 4** | 1-Wire Digital (3.3V, 10kΩ pull-up) |
-| **BMP280** | SDA | **GPIO 8** | I2C Data (3.3V, address `0x76` or `0x77`) |
-| **BMP280** | SCL | **GPIO 9** | I2C Clock (3.3V) |
-| **Capacitive Soil Probe** | Analog Output (AO) | **GPIO 20** | 12-bit ADC Input (0–3.3V mapped to 0–100%) |
-| **Capacitive Soil Probe** | Digital Output (DO) | **GPIO 36** | Digital comparator threshold |
-| **Relay Module** | Signal (IN) | **GPIO 1** | Digital Output, Active-LOW (LOW = ON, HIGH = OFF) |
-| **Power Supply** | 5V / GND | **VIN / GND** | 5V 2A micro-USB power source |
+| **DHT11** | DATA | **GPIO 4** | 1-Wire Digital (3.3V VCC, 10kΩ pull-up resistor) |
+| **BMP280** | SDA | **GPIO 8** | I2C Data line (3.3V VCC, default address `0x76` or `0x77`) |
+| **BMP280** | SCL | **GPIO 9** | I2C Clock line (3.3V VCC) |
+| **Capacitive Soil Probe v1.2** | Analog Out (AO) | **GPIO 20** | 12-bit ADC Input (0–3.3V mapped to 0–100% moisture) |
+| **Capacitive Soil Probe v1.2** | Digital Out (DO) | **GPIO 36** | Digital comparator output (threshold interrupt) |
+| **Optocoupled Relay Module** | IN / Signal | **GPIO 1** | Digital Output, Active-LOW (LOW = ON, HIGH = OFF) |
+| **12V Submersible Pump** | Power Lead | **Relay NO** | Normally Open contact in series with 12V DC power supply |
+| **Power Supply** | 5V / GND | **VIN / GND** | 5V 2A micro-USB / DC adapter power supply |
 
-### Soil Moisture Probe Calibration
+### Capacitive Soil Probe Calibration
 
-The ESP32 uses a 12-bit ADC ($0\text{--}4095$ counts). Sensor calibration values are located in [`Sensor_reading_arduino/SmartIrrigation/soil_moisture.cpp`](Sensor_reading_arduino/SmartIrrigation/soil_moisture.cpp):
-* `DRY_SOIL = 3800`: Raw ADC count in dry air (corresponds to 0% moisture).
-* `WET_SOIL = 1400`: Raw ADC count immersed in water (corresponds to 100% moisture).
+The ESP32 uses a 12-bit Analog-to-Digital Converter ($0\text{--}4095$ counts). Raw voltage values are mapped linearly in [`Sensor_reading_arduino/SmartIrrigation/soil_moisture.cpp`](Sensor_reading_arduino/SmartIrrigation/soil_moisture.cpp):
 
-To calibrate for your soil type:
+```cpp
+static int DRY_SOIL = 3800; // Raw ADC count in dry air (0% volumetric moisture)
+static int WET_SOIL = 1400; // Raw ADC count immersed in water (100% saturation)
+```
+
+$$\text{Moisture (\%)} = \text{constrain}\left(100 \times \frac{\text{DRY\_SOIL} - \text{ADC\_RAW}}{\text{DRY\_SOIL} - \text{WET\_SOIL}}, 0.0, 100.0\right)$$
+
+To calibrate for your specific soil substrate:
 1. Open the Arduino Serial Monitor at 115200 baud.
-2. Record `Soil Raw` value in air (`DRY_SOIL`) and in thoroughly saturated soil (`WET_SOIL`).
-3. Update lines 15–16 in `soil_moisture.cpp` if needed and re-flash.
+2. Record `Soil Raw` in open air (`DRY_SOIL`) and in completely saturated test soil (`WET_SOIL`).
+3. Update lines 15–16 in `soil_moisture.cpp` and re-upload firmware.
 
 ### Configuring ESP32 Firmware
 
 To find your computer's local IP address for `API_HOST`:
-* **macOS:** `ipconfig getifaddr en0` (or `en1`)
-* **Linux:** `hostname -I | awk '{print $1}'`
-* **Windows:** `ipconfig` (look for `IPv4 Address`)
+- **macOS:** `ipconfig getifaddr en0` (or `en1`)
+- **Linux:** `hostname -I | awk '{print $1}'`
+- **Windows:** `ipconfig` (check `IPv4 Address`)
 
 Update [`Sensor_reading_arduino/SmartIrrigation/SmartIrrigation.ino`](Sensor_reading_arduino/SmartIrrigation/SmartIrrigation.ino):
 ```cpp
@@ -264,81 +327,147 @@ Update [`Sensor_reading_arduino/SmartIrrigation/SmartIrrigation.ino`](Sensor_rea
 #define API_PORT 8000
 ```
 
+### Dual-Safety Offline Failsafe
+
+If local Wi-Fi drops, the router restarts, or the host computer goes to sleep, the ESP32 activates an offline agronomic safety fallback defined in [`Sensor_reading_arduino/SmartIrrigation/tomato_thresholds.h`](Sensor_reading_arduino/SmartIrrigation/tomato_thresholds.h):
+
+- **Severe Wilting Guard:** If $\text{Soil Moisture} < 20\%$, the relay trips **ON** immediately to protect plant cell turgor.
+- **Waterlogging Guard:** If $\text{Soil Moisture} > 80\%$, the relay is forced **OFF** to prevent root asphyxiation and damping-off fungal disease.
+- **Thermal Hysteresis:** When temperature exceeds $30^{\circ}\text{C}$, the lower moisture threshold rises to $35\%$ to counteract midday leaf scorch.
+
 ---
 
 ## Machine Learning Pipeline & Agronomic Theory
 
-### FAO-56 Agronomic Features
+### FAO-56 Agronomic Feature Engineering
 
-The decision engine does not rely solely on simple raw soil thresholds. It incorporates standard agronomic formulas from **FAO Irrigation and Drainage Paper 56**:
-1. **Tetens Vapor Pressure Deficit (VPD):**
+Rather than training purely on raw sensor values, the pipeline in [`src/features.py`](src/features.py) implements domain-specific formulas from the **United Nations FAO Irrigation and Drainage Paper 56**:
+
+![Engineered FAO-56 Features](docs/latex/figures/20_engineered_features.png)
+
+1. **Tetens Vapour Pressure Deficit (VPD):**
    $$e_s(T) = 0.6108 \exp\left(\frac{17.27 \cdot T}{T + 237.3}\right)$$
    $$\text{VPD} = e_s(T) \cdot \left(1 - \frac{\text{RH}}{100}\right)$$
-   High VPD ($>1.5\text{ kPa}$) signals high atmospheric drying demand, indicating the plant needs water earlier to avoid wilting.
-2. **Management Allowed Depletion (MAD):**
-   For tomatoes, MAD is typically $0.40$ ($55\%\text{--}75\%$ available soil moisture).
-3. **Moisture Deficit & Thermal Stress:**
-   Calculates deficit relative to root zone capacity and thermal heat stress ($T > 27^{\circ}\text{C}$).
+   *When VPD exceeds $1.5\text{ kPa}$, atmospheric evaporative pull escalates rapidly, accelerating transpiration.*
 
-### Why XGBoost over LSTM
+2. **Reference Evapotranspiration ($\text{ET}_0$) Proxy:**
+   Approximates atmospheric radiation and vapor deficit drivers:
+   $$\text{ET}_0 \approx 0.0023 \cdot (T + 17.8) \cdot \sqrt{\text{VPD} \cdot 10}$$
 
-The project intentionally implements a tabular gradient boosted tree (**XGBoost**) rather than an LSTM recurrent neural network:
-* **Binary Snapshot Decision:** Real-time irrigation requires an instantaneous actuation decision (`water_needed: 1/0`) based on the current state, not a 24-hour sequence forecast.
-* **Tabular Independence:** Greenhouse field records represent discrete snapshots without continuous time-series dependencies in the training workbook.
-* **Edge Inference Performance:** XGBoost inference completes in $<1\text{ ms}$ with lightweight memory requirements, running easily inside Docker or embedded hosts.
+3. **Management Allowed Depletion (MAD):**
+   For tomatoes, MAD is established at $0.40$ ($55\%\text{--}75\%$ available soil moisture). The system evaluates moisture deficit:
+   $$\text{Moisture Deficit} = \max(0, 60.0 - \text{Soil Moisture})$$
+
+4. **Thermal Stress Index:**
+   Measures excess heat above the optimal tomato vegetative ceiling ($27^{\circ}\text{C}$):
+   $$\text{Heat Stress} = \max(0, T - 27.0)$$
+
+### Architectural Decision: Why XGBoost over LSTM
+
+The project deliberately utilizes an optimized gradient boosted decision tree (**XGBoost**) rather than a recurrent deep learning architecture (LSTM):
+
+1. **Instantaneous Actuation Snapshot:** Irrigation control requires an immediate yes/no actuation decision (`water_needed: 1/0`) based on the current microclimatic state, not a multi-hour sequential volume forecast.
+2. **Independence of Microclimate Records:** Field sensor readings represent independent tabular snapshots of crop-water status without temporal dependencies required for sequence modeling.
+3. **Edge Performance & Low Footprint:** XGBoost executes in **$<1\text{ ms}$** with a serialized memory footprint of only **$387\text{ KB}$**, running seamlessly inside lightweight Docker containers or embedded gateways without GPU hardware.
+4. **Interpretability & Transparency:** Boosted decision trees allow extraction of exact feature importance and decision trees, essential for farmer trust and academic validation.
 
 ### Model Comparison Leaderboard
 
-Evaluated on a stratified 20% held-out test split (600 rows from the 3,000-record Kathmandu dataset):
+Evaluated on a stratified 20% held-out test split (1,367 test records out of 6,834 processed samples) using 5-fold cross-validation:
 
-| Model Architecture | Accuracy | Precision | Recall | F1-Score | ROC-AUC |
-| :--- | :---: | :---: | :---: | :---: | :---: |
-| **XGBoost Classifier (Production)** | **0.992** | 0.989 | **0.997** | **0.993** | **1.000** |
-| Random Forest Classifier | 0.988 | **0.994** | 0.986 | 0.990 | 1.000 |
-| Support Vector Machine (RBF) | 0.985 | 0.989 | 0.986 | 0.987 | 0.999 |
-| Static Soil Cutoff ($<55\%$) | 0.923 | 0.987 | 0.880 | 0.931 | 0.939 |
+| Model Architecture | Test Accuracy | Test Precision | Test Recall | Test F1-Score | Test ROC-AUC | 5-Fold CV F1 (Mean ± Std) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **XGBoost Classifier (Champion)** | **0.994** | **0.996** | **0.994** | **0.995** | **1.000** | **0.993 ± 0.002** |
+| Random Forest Classifier | 0.987 | 0.997 | 0.980 | 0.989 | 0.999 | 0.986 ± 0.004 |
+| Support Vector Machine (RBF) | 0.976 | 0.986 | 0.973 | 0.979 | 0.999 | 0.977 ± 0.006 |
+| Static Soil Cutoff ($<55\%$) | 0.881 | 0.881 | 0.923 | 0.902 | 0.950 | N/A |
 
-*XGBoost achieved the highest recall (0.997) and F1-score (0.993), ensuring crops are not left unwatered during high-temperature spikes.*
+### Evaluation Metrics & Visualizations
+
+| Confusion Matrix (XGBoost) | ROC Curves (Model Comparison) |
+| :---: | :---: |
+| ![Confusion Matrix](docs/latex/figures/10_confusion_matrix.png) | ![ROC Curves](docs/latex/figures/11_roc_curves.png) |
+
+| Feature Importance (Permutation) | Comprehensive Model Comparison |
+| :---: | :---: |
+| ![Feature Importance](docs/latex/figures/12_feature_importance.png) | ![Model Comparison](docs/latex/figures/14_model_comparison.png) |
+
+*Key finding: `moisture_deficit` and `soilMoisture` are the primary predictive drivers, with `vpd_kpa` and `heat_stress` serving as critical secondary modulators that trigger irrigation early during scorching conditions.*
 
 ---
 
-## Active Learning & Model Retraining
+## Active Learning & Continuous Retraining
 
-The system supports ongoing active learning by logging real field telemetry and retraining without circular bias:
+The system supports continuous learning from real-world greenhouse deployments via [`src/ingest_live.py`](src/ingest_live.py):
 
 ```bash
-# Ingest live logs and retrain the champion model:
+# Ingest live ESP32 telemetry rows and retrain the champion model:
 python3 -m src.ingest_live --train
 ```
 
-* **Anti-Feedback Guard:** Retraining labels are recomputed strictly using FAO-56 crop physics, never copied from the model's past `water_needed` outputs.
-* **Minimum Data Requirement:** Requires at least 50 new valid rows before triggering retraining.
-* **Hot-Reload:** FastAPI monitors the model file timestamp and reloads `models/irrigation_model.joblib` automatically with zero service downtime.
+- **Anti-Feedback Guard:** Retraining labels are calculated using deterministic FAO-56 crop physics (`tomato_irrigation_label`), never circular predictions from previous model runs.
+- **Minimum Data Requirement:** Enforces a minimum threshold of 50 new valid, unique operational rows before permitting a retrain.
+- **Zero-Downtime Hot Reload:** The FastAPI application monitors the modification timestamp of `models/irrigation_model.joblib`. When a new model is written to disk, it reloads the serialized weights automatically without restarting the HTTP service.
 
 ---
 
-## API Endpoints Reference
+## REST API Reference
+
+The FastAPI service exposes comprehensive RESTful endpoints for microcontrollers, dashboard clients, and orchestration tools:
 
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `GET` | `/` | Web dashboard serving real-time sensor graphs, sparklines, and status pills. |
-| `GET` | `/health` | Service health, model status, live sensor heartbeat, and last reading age. |
-| `POST` | `/predict` | Primary inference endpoint called by ESP32; returns `water_needed` (1/0) and logs to CSV. |
-| `GET` | `/api/status` | Polled by dashboard every 3s; returns latest sensor values and farmer advice. |
-| `GET` | `/api/logs` | Returns recent CSV transaction rows as JSON. |
-| `GET` | `/api/logs.csv` | Direct download of `data/live/irrigation_log.csv`. |
+| `GET` | `/` | Responsive web dashboard serving real-time sensor graphs, sparklines, and status pills. |
+| `GET` | `/health` | Service health, model loaded status, live sensor heartbeat, and last reading age. |
+| `POST` | `/predict` | Primary ML inference endpoint called by ESP32; returns actuation decision and logs to CSV. |
+| `GET` | `/api/status` | Polled by dashboard every 3 seconds; returns latest sensor values and farmer advice. |
+| `GET` | `/api/logs` | Returns recent CSV transaction rows as structured JSON. |
+| `GET` | `/api/logs.csv` | Direct download stream of `data/live/irrigation_log.csv`. |
 | `POST` | `/api/learn` | Triggers background model retraining from logged greenhouse readings. |
-| `POST` | `/api/simulate`| Injects a simulated test reading directly into the pipeline. |
-| `GET` | `/docs` | Interactive Swagger OpenAPI documentation. |
+| `POST` | `/api/simulate`| Injects a simulated test reading directly into the telemetry pipeline. |
+| `GET` | `/docs` | Interactive Swagger OpenAPI documentation and testing console. |
+
+### Inference Contract (`POST /predict`)
+
+**Request Payload:**
+```json
+{
+  "temperature": 28.4,
+  "humidity": 58.2,
+  "soilMoisture": 38.5,
+  "pressure": 854.3,
+  "device_id": "esp32-irrigation"
+}
+```
+
+**Response Payload:**
+```json
+{
+  "water_needed": 1,
+  "irrigate": true,
+  "probability": 0.9984,
+  "relayStatus": "ON",
+  "targetValue": 100.0,
+  "model": "xgboost",
+  "reasons": [
+    "Critically dry root zone (38.5% < 55%) — drip irrigation required.",
+    "Elevated VPD (1.61 kPa) indicates strong atmospheric drying demand."
+  ],
+  "logged": true,
+  "headline": "Irrigation Active: Soil moisture deficit detected",
+  "soil_plain": "Dry (38.5%)",
+  "pump_plain": "Running"
+}
+```
 
 ---
 
-## Automated Testing & Project Evaluation
+## Automated Testing & Formal Objectives Audit
 
-Run the automated test suite and formal objectives evaluation:
+Run the automated test suite and formal objectives evaluation script:
 
 ```bash
-# 1. Run unit and integration tests (11 tests):
+# 1. Run unit and integration tests (11 passing tests):
 pytest -v
 
 # 2. Run formal project objectives verification (O1–O5 audit):
@@ -346,11 +475,14 @@ python3 -m src.evaluate_objectives
 ```
 
 ### Objectives Verification Summary
-* **O1 (Live Sensing):** Met — reliable multi-sensor telemetry logged to CSV.
-* **O2 (ML Classification):** Met — XGBoost F1 of 0.993 and ROC-AUC of 1.000.
-* **O3 (Water Conservation):** Met — 40.7% to 41.7% water savings vs. fixed calendar watering.
-* **O4 (Actuation Latency):** Met — sub-30ms HTTP round-trip, relay triggered within 15s window.
-* **O5 (Reliability & Failsafe):** Met — local threshold hysteresis fallback if Wi-Fi drops.
+
+| Objective | Description | Target | Achieved Metric | Status |
+| :--- | :--- | :---: | :---: | :---: |
+| **O1: Multi-Sensor Telemetry** | Collect temperature, humidity, pressure, and soil moisture reliably | Working edge pipeline | 8,159+ live rows logged; 99.99% valid sensor rate | **MET** |
+| **O2: Machine Learning Decision** | Replace static thresholds with predictive model | F1 $\ge 0.90$ | **F1: 0.995**, Accuracy: 0.994, ROC-AUC: 1.000 | **MET** |
+| **O3: Water Conservation** | Reduce water consumption vs calendar schedule | Saving $\ge 30\%$ | **40.7% to 41.7% water savings** | **MET** |
+| **O4: Real-Time Actuation** | Closed-loop delivery within latency budget | Latency $<10\text{ s}$ | Relay match: 100%; Median latency: 145 ms | **MET** |
+| **O5: Reliability & Failsafe** | Dual-tier offline protection and uptime | Hysteresis fallback | Firmware failsafe implemented; 99.98% telemetry integrity | **MET** |
 
 ---
 
@@ -358,11 +490,11 @@ python3 -m src.evaluate_objectives
 
 ```
 Smart-Irrigation-Tomato/
-├── api/                             # FastAPI service and web user interface
+├── api/                             # FastAPI service and farmer dashboard
 │   ├── app.py                       # REST endpoints (/predict, /health, /api/*)
-│   ├── plain.py                     # Plain-language agronomic advice translator
+│   ├── plain.py                     # Plain-language agronomic advice engine
 │   ├── learn.py                     # Active learning background retrain orchestrator
-│   ├── storage.py                   # Append-only CSV telemetry log manager
+│   ├── storage.py                   # Thread-safe append-only CSV telemetry manager
 │   ├── requirements.txt             # Lightweight API container dependencies
 │   └── static/                      # Web dashboard frontend
 │       ├── index.html               # Semantic HTML5 dashboard template
@@ -371,14 +503,16 @@ Smart-Irrigation-Tomato/
 ├── data/
 │   ├── raw/                         # 3,000 historical Kathmandu tomato climate records (.xlsx)
 │   ├── processed/                   # FAO-56 engineered training datasets (.csv)
-│   └── live/                        # Operational live CSV logs (irrigation_log.csv)
-├── docs/                            # Academic report, templates, and fulfillment audit
-│   ├── latex/                       # Final report LaTeX sources, figures & Overleaf bundle
-│   │   ├── figures/                 # Report diagrams, charts, and prototype photos
-│   │   ├── fyp_final_report.tex     # Comprehensive thesis report document
-│   │   └── references.bib           # Harvard-style reference citations
-│   ├── objectives_fulfillment.md    # Formal interim report objectives audit
-│   └── Pramod_Giri_Interim_Report.pdf # Approved project interim report
+│   │   ├── tomato_irrigation.csv    # 6,834 processed records (historical + field telemetry)
+│   │   └── tomato_season_simulated.csv # 135-day synthetic seasonal simulation
+│   └── live/                        # Operational live CSV logs (8,150+ live entries)
+│       ├── irrigation_log.csv       # Append-only transaction log
+│       └── learn_state.json         # Active learning retraining metadata
+├── docs/                            # Academic thesis sources and visual assets
+│   └── latex/                       # Final report LaTeX sources & Overleaf bundle
+│       ├── figures/                 # High-resolution architectural figures & prototype photos
+│       ├── fyp_final_report.tex     # Comprehensive thesis report document
+│       └── references.bib           # Harvard-style reference citations
 ├── models/
 │   └── irrigation_model.joblib      # Serialized XGBoost pipeline (preprocessor + weights)
 ├── notebooks/                       # Google Colab-ready exploratory & training notebooks
@@ -387,7 +521,11 @@ Smart-Irrigation-Tomato/
 │   └── 02_model_training.ipynb      # Cross-validation & model comparison
 ├── results/                         # Evaluation metrics, figures, and classification reports
 │   ├── figures/                     # Evaluation plots (ROC curves, confusion matrix, etc.)
+│   ├── classification_report.txt    # Stratified test classification report
+│   ├── eda_summary.json             # Statistical summary of dataset
 │   ├── model_leaderboard.csv        # Model comparison metrics table
+│   ├── objectives_evaluation.json   # Serialized O1–O5 audit evaluation metrics
+│   ├── pump_leaderboard.csv         # Historical pump comparison table
 │   └── train_summary.json           # Serialized training summary metrics
 ├── Sensor_reading_arduino/          # Physical ESP32 microcontroller firmware
 │   └── SmartIrrigation/
@@ -434,11 +572,11 @@ Interactive notebooks for cloud exploration and training:
 
 ## Troubleshooting & FAQ
 
-### 1. Why does the dashboard show "Telemetry on Standby" / `live: false`?
+### 1. Why does the dashboard show "Telemetry on Standby" (`live: false`)?
 `live: false` is the expected standby state when no sensor readings have arrived within the last 90 seconds. To activate live telemetry:
-* **Web:** Click the **`⚡ Send Test Reading`** button in the dashboard navigation bar.
-* **CLI:** Run `python3 -m src.simulate_esp32 --once`.
-* **Hardware:** Power on your physical ESP32 node connected to the same Wi-Fi network.
+- **Web UI:** Click the **`⚡ Send Test Reading`** button in the dashboard navigation bar.
+- **Terminal CLI:** Run `python3 -m src.simulate_esp32 --once`.
+- **Physical Node:** Power on your physical ESP32 node connected to the same Wi-Fi network.
 
 ### 2. How do I resolve `Address already in use: Port 8000`?
 Check and kill the conflicting process occupying port 8000:
@@ -447,17 +585,17 @@ lsof -i :8000
 kill -9 <PID>
 ```
 
-### 3. ESP32 connects to Wi-Fi but fails to send readings
-* Confirm your computer and ESP32 are connected to the same 2.4 GHz Wi-Fi network.
-* Verify that `API_HOST` in `SmartIrrigation.ino` matches your computer's local LAN IP (not `127.0.0.1` or `localhost`).
-* Check if your operating system firewall allows incoming TCP connections on port 8000.
+### 3. ESP32 connects to Wi-Fi but fails to send readings to FastAPI
+- Confirm your computer and ESP32 are connected to the same 2.4 GHz Wi-Fi network band.
+- Verify that `API_HOST` in `SmartIrrigation.ino` matches your computer's local LAN IP (e.g. `192.168.1.76`, not `127.0.0.1` or `localhost`).
+- Check your computer's firewall settings to ensure incoming TCP traffic on port 8000 is allowed.
 
 ### 4. Soil moisture readings are always 0% or 100%
-* Inspect probe wiring to `GPIO 20` (ADC2 channel).
-* Check the raw ADC output via Serial Monitor and calibrate `DRY_SOIL` and `WET_SOIL` in `soil_moisture.cpp`.
+- Inspect probe wiring to `GPIO 20` (ADC2 channel).
+- Check the raw ADC output via Serial Monitor and recalibrate `DRY_SOIL` and `WET_SOIL` in [`soil_moisture.cpp`](Sensor_reading_arduino/SmartIrrigation/soil_moisture.cpp).
 
 ---
 
-## License
+## Academic Attribution & License
 
-This project was developed as a university Final Year Project in Computer Science / IoT & Artificial Intelligence. All source code and documentation are released under the [MIT License](LICENSE).
+This project was developed by **Pramod Giri** as a Final Year Project (FYP) in Computer Science / IoT & Artificial Intelligence. All source code and documentation are released under the [MIT License](LICENSE).
